@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedQueue;
+
+import kc.util.MultiUserQueue;
 
 import org.apache.log4j.Logger;
 
@@ -30,7 +31,7 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 
 	protected final Logger logger = Logger.getLogger(Game.class);
 	protected StorageService sto;
-	Map<UUID, Queue<Measured>> measured = new HashMap<UUID, Queue<Measured>>();
+	Map<UUID, MultiUserQueue<Measured>> measured = new HashMap<UUID, MultiUserQueue<Measured>>();
 
 	@Inject
 	public Game(EnvironmentSharedStateAccess sharedState, StorageService sto) {
@@ -77,7 +78,7 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 			});
 
 			if (s.measure) {
-				getMeasuredQueue(actor).add(
+				getMeasuredQueue(actor).publish(
 						new Measured(getState(actor), s.getId(), u, time));
 			}
 		}
@@ -98,10 +99,14 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 		return score;
 	}
 
-	public Queue<Measured> getMeasuredQueue(UUID actor) {
+	private MultiUserQueue<Measured> getMeasuredQueue(UUID actor) {
 		if (!measured.containsKey(actor))
-			measured.put(actor, new ConcurrentLinkedQueue<Measured>());
+			measured.put(actor, new MultiUserQueue<Measured>());
 		return measured.get(actor);
+	}
+
+	public Queue<Measured> measuredQueueSubscribe(UUID actor) {
+		return getMeasuredQueue(actor).subscribe();
 	}
 
 	@Inject(optional = true)

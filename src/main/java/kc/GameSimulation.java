@@ -3,11 +3,16 @@ package kc;
 import java.util.HashSet;
 import java.util.Set;
 
+import kc.agents.AbstractAgent;
 import kc.agents.GathererAgent;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.MeanPredictor;
 import kc.prediction.RandomPredictor;
 import uk.ac.imperial.einst.EInstSession;
+import uk.ac.imperial.einst.Institution;
+import uk.ac.imperial.einst.access.RoleOf;
+import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
+import uk.ac.imperial.einst.resource.Pool;
 import uk.ac.imperial.presage2.core.TimeDriven;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
@@ -71,12 +76,26 @@ public class GameSimulation extends InjectedSimulation implements TimeDriven {
 	protected void addToScenario(Scenario s) {
 		s.addTimeDriven(this);
 
-		s.addParticipant(new GathererAgent(Random.randomUUID(), "a1",
-				new RandomPredictor()));
-		s.addParticipant(new GathererAgent(Random.randomUUID(), "a2",
-				new MeanPredictor()));
-		s.addParticipant(new GathererAgent(Random.randomUUID(), "a3",
-				new GreedyPredictor(1.0, 0.1, 0.1)));
+		AbstractAgent a1 = new GathererAgent(Random.randomUUID(), "a1",
+				new RandomPredictor());
+		AbstractAgent a2 = new GathererAgent(Random.randomUUID(), "a2",
+				new MeanPredictor());
+		AbstractAgent a3 = new GathererAgent(Random.randomUUID(), "a3",
+				new GreedyPredictor(1.0, 0.1, 0.1));
+		s.addParticipant(a1);
+		s.addParticipant(a2);
+		s.addParticipant(a3);
+
+		Set<String> roles = new HashSet<String>();
+		roles.add("gatherer");
+		Institution i = new DataInstitution("i1");
+		Pool p = new Pool(i, roles, roles, new ArtifactTypeMatcher(
+				Measured.class));
+		session.insert(p);
+		
+		session.insert(new RoleOf(a1, i, "gatherer"));
+		session.insert(new RoleOf(a2, i, "gatherer"));
+		session.insert(new RoleOf(a3, i, "gatherer"));
 	}
 
 	@Override

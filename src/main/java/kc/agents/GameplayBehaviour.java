@@ -27,7 +27,7 @@ public class GameplayBehaviour implements Behaviour {
 
 	@Override
 	public void initialise() {
-		this.incMeasured = s.game.getMeasuredQueue(s.getID());
+		this.incMeasured = s.game.measuredQueueSubscribe(s.getID());
 	}
 
 	@Override
