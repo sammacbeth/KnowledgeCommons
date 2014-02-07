@@ -5,7 +5,7 @@ import uk.ac.imperial.presage2.core.Action;
 public class Strategy implements Action {
 
 	final int id;
-	final boolean measure;
+	boolean measure;
 
 	public Strategy(int id, boolean measure) {
 		super();
@@ -23,6 +23,10 @@ public class Strategy implements Action {
 
 	public int getId() {
 		return id;
+	}
+
+	public void setMeasure(boolean measure) {
+		this.measure = measure;
 	}
 
 	@Override

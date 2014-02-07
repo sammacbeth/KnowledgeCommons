@@ -4,7 +4,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import kc.agents.GathererAgent;
+import kc.prediction.GreedyPredictor;
+import kc.prediction.MeanPredictor;
+import kc.prediction.RandomPredictor;
 import uk.ac.imperial.einst.EInstSession;
+import uk.ac.imperial.presage2.core.TimeDriven;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
@@ -17,7 +21,7 @@ import uk.ac.imperial.presage2.util.network.NetworkModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 
-public class GameSimulation extends InjectedSimulation {
+public class GameSimulation extends InjectedSimulation implements TimeDriven {
 
 	@Parameter(name = "numStrategies")
 	public static int numStrategies;
@@ -65,6 +69,18 @@ public class GameSimulation extends InjectedSimulation {
 
 	@Override
 	protected void addToScenario(Scenario s) {
-		s.addParticipant(new GathererAgent(Random.randomUUID(), "a1"));
+		s.addTimeDriven(this);
+
+		s.addParticipant(new GathererAgent(Random.randomUUID(), "a1",
+				new RandomPredictor()));
+		s.addParticipant(new GathererAgent(Random.randomUUID(), "a2",
+				new MeanPredictor()));
+		s.addParticipant(new GathererAgent(Random.randomUUID(), "a3",
+				new GreedyPredictor(1.0, 0.1, 0.1)));
+	}
+
+	@Override
+	public void incrementTime() {
+		session.incrementTime();
 	}
 }
