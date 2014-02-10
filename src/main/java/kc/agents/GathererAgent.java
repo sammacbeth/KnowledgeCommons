@@ -13,6 +13,7 @@ public class GathererAgent extends AbstractAgent {
 		addBehaviour(new GathererBehaviour(this));
 		if (consumer)
 			addBehaviour(new ConsumerBehaviour(this));
+		addBehaviour(new InstitutionalBehaviour(this));
 	}
 
 }

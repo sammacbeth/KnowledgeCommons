@@ -1,9 +1,7 @@
 package kc.agents;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
 import java.util.UUID;
 
 import kc.Game;
@@ -13,16 +11,13 @@ import kc.InstitutionService;
 import org.apache.log4j.Logger;
 
 import uk.ac.imperial.einst.Actor;
-import uk.ac.imperial.einst.ipower.Obl;
-import uk.ac.imperial.einst.ipower.ObligationReactive;
 import uk.ac.imperial.presage2.core.Action;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
-public class AbstractAgent extends AbstractParticipant implements Actor,
-		ObligationReactive {
+public class AbstractAgent extends AbstractParticipant implements Actor {
 
 	protected final Logger logger;
 	protected Game game;
@@ -32,8 +27,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor,
 	GathererBehaviour gathering;
 	ConsumerBehaviour consuming;
 	GameplayBehaviour gameplay;
-
-	Queue<Obl> obligations = new LinkedList<Obl>();
+	InstitutionalBehaviour insting;
 
 	public AbstractAgent(UUID id, String name) {
 		super(id, name);
@@ -66,20 +60,9 @@ public class AbstractAgent extends AbstractParticipant implements Actor,
 		super.incrementTime();
 	}
 
-	protected void processObligations() {
-		while (!obligations.isEmpty()) {
-			inst.act(obligations.poll().getAction());
-		}
-	}
-
 	@Override
 	public String toString() {
 		return this.getName();
-	}
-
-	@Override
-	public void onObligation(Obl obl) {
-		obligations.add(obl);
 	}
 
 	void act(Action act) {
@@ -106,6 +89,11 @@ public class AbstractAgent extends AbstractParticipant implements Actor,
 
 	void addBehaviour(GathererBehaviour b) {
 		this.gathering = b;
+		addAdditionalBehaviour(b);
+	}
+
+	void addBehaviour(InstitutionalBehaviour b) {
+		this.insting = b;
 		addAdditionalBehaviour(b);
 	}
 

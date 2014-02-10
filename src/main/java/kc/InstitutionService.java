@@ -4,7 +4,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
 import java.util.Set;
 
-import kc.agents.AbstractAgent;
 import uk.ac.imperial.einst.Action;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Module;
@@ -39,10 +38,6 @@ public class InstitutionService extends EnvironmentService {
 
 	public EInstSession getSession() {
 		return session;
-	}
-
-	public void registerAgent(AbstractAgent a) {
-		ipower.registerObligationReactive(a, a);
 	}
 
 	public void act(Action act) {
