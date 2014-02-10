@@ -29,6 +29,10 @@ public class AbstractAgent extends AbstractParticipant implements Actor,
 	InstitutionService inst;
 
 	Map<String, Behaviour> behaviours = new HashMap<String, Behaviour>();
+	GathererBehaviour gathering;
+	ConsumerBehaviour consuming;
+	GameplayBehaviour gameplay;
+
 	Queue<Obl> obligations = new LinkedList<Obl>();
 
 	public AbstractAgent(UUID id, String name) {
@@ -86,8 +90,23 @@ public class AbstractAgent extends AbstractParticipant implements Actor,
 		}
 	}
 
-	void addBehaviour(Behaviour b) {
+	void addAdditionalBehaviour(Behaviour b) {
 		behaviours.put(b.getType(), b);
+	}
+
+	void addBehaviour(ConsumerBehaviour b) {
+		this.consuming = b;
+		addAdditionalBehaviour(b);
+	}
+
+	void addBehaviour(GameplayBehaviour b) {
+		this.gameplay = b;
+		addAdditionalBehaviour(b);
+	}
+
+	void addBehaviour(GathererBehaviour b) {
+		this.gathering = b;
+		addAdditionalBehaviour(b);
 	}
 
 }

@@ -28,6 +28,8 @@ public class GameplayBehaviour implements Behaviour {
 	@Override
 	public void initialise() {
 		this.incMeasured = s.game.measuredQueueSubscribe(s.getID());
+		if (s.consuming != null)
+			s.consuming.measuredQueueSubscribe(incMeasured);
 	}
 
 	@Override
@@ -43,7 +45,7 @@ public class GameplayBehaviour implements Behaviour {
 		chosen.setMeasure(measure);
 
 		// play the game
-		s.logger.info("Strategy: " + chosen + "");
+		s.logger.info(chosen);
 		s.act(chosen);
 	}
 

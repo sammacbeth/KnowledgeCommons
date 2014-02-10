@@ -13,9 +13,11 @@ import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.access.RoleOf;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
-import uk.ac.imperial.presage2.core.TimeDriven;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
+import uk.ac.imperial.presage2.core.event.EventBus;
+import uk.ac.imperial.presage2.core.event.EventListener;
+import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
@@ -26,7 +28,7 @@ import uk.ac.imperial.presage2.util.network.NetworkModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 
-public class GameSimulation extends InjectedSimulation implements TimeDriven {
+public class GameSimulation extends InjectedSimulation {
 
 	@Parameter(name = "numStrategies")
 	public static int numStrategies;
@@ -54,6 +56,11 @@ public class GameSimulation extends InjectedSimulation implements TimeDriven {
 		}
 	}
 
+	@Inject
+	public void setEventBus(EventBus eb) {
+		eb.subscribe(this);
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	protected Set<AbstractModule> getModules() {
@@ -74,17 +81,23 @@ public class GameSimulation extends InjectedSimulation implements TimeDriven {
 
 	@Override
 	protected void addToScenario(Scenario s) {
-		s.addTimeDriven(this);
+		this.session.LOG_WM = false;
 
 		AbstractAgent a1 = new GathererAgent(Random.randomUUID(), "a1",
-				new RandomPredictor());
+				new RandomPredictor(), false);
 		AbstractAgent a2 = new GathererAgent(Random.randomUUID(), "a2",
-				new MeanPredictor());
+				new MeanPredictor(), true);
 		AbstractAgent a3 = new GathererAgent(Random.randomUUID(), "a3",
-				new GreedyPredictor(1.0, 0.1, 0.1));
+				new GreedyPredictor(1.0, 0.1, 0.1), true);
+		AbstractAgent a4 = new GathererAgent(Random.randomUUID(), "a4",
+				new MeanPredictor(), true);
+		AbstractAgent a5 = new GathererAgent(Random.randomUUID(), "a5",
+				new GreedyPredictor(1.0, 0.1, 0.1), true);
 		s.addParticipant(a1);
 		s.addParticipant(a2);
 		s.addParticipant(a3);
+		s.addParticipant(a4);
+		s.addParticipant(a5);
 
 		Set<String> roles = new HashSet<String>();
 		roles.add("gatherer");
@@ -92,14 +105,14 @@ public class GameSimulation extends InjectedSimulation implements TimeDriven {
 		Pool p = new Pool(i, roles, roles, new ArtifactTypeMatcher(
 				Measured.class));
 		session.insert(p);
-		
+
 		session.insert(new RoleOf(a1, i, "gatherer"));
 		session.insert(new RoleOf(a2, i, "gatherer"));
 		session.insert(new RoleOf(a3, i, "gatherer"));
 	}
 
-	@Override
-	public void incrementTime() {
+	@EventListener
+	public void incrementTime(EndOfTimeCycle e) {
 		session.incrementTime();
 	}
 }

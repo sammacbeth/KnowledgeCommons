@@ -14,6 +14,10 @@ public class MultiUserQueue<T> {
 		return q;
 	}
 
+	public void subscribe(Queue<T> q) {
+		endpoints.add(q);
+	}
+
 	public void publish(T item) {
 		for (Queue<T> q : endpoints) {
 			q.add(item);
