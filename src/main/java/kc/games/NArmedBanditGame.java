@@ -17,7 +17,6 @@ import org.uncommons.maths.number.NumberGenerator;
 import org.uncommons.maths.random.GaussianGenerator;
 import org.uncommons.maths.random.XORShiftRNG;
 
-import uk.ac.imperial.presage2.core.db.StorageService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
@@ -38,10 +37,11 @@ public class NArmedBanditGame extends Game {
 	final double maxChangeRate = 0.01;
 	final double maxStd = 0.001;
 
+	int roundNumber = 0;
+
 	@Inject
-	public NArmedBanditGame(EnvironmentSharedStateAccess sharedState,
-			StorageService sto) {
-		super(sharedState, sto);
+	public NArmedBanditGame(EnvironmentSharedStateAccess sharedState) {
+		super(sharedState);
 		this.strategies = new ArrayList<Strategy>();
 		this.bandits = new Vector<NumberGenerator<Double>>();
 		this.banditMeans = new Vector<AdjustableNumberGenerator<Double>>();
@@ -74,14 +74,13 @@ public class NArmedBanditGame extends Game {
 			if (pay > max)
 				max = pay;
 		}
-		// normalise against maximum & store values in db
-		//final PersistentEnvironment env = sto.getSimulation().getEnvironment();
-		//final int time = SimTime.get().intValue();
+		// normalise against maximum
 		for (int i = 0; i < currentRound.length; i++) {
 			currentRound[i] /= max;
-			//logger.info("s" + i + ": " + currentRound[i]);
-			//env.setProperty("s" + i, time, Double.toString(currentRound[i]));
+			if (sto != null)
+				sto.insertGameRound(roundNumber, i, currentRound[i]);
 		}
+
 	}
 
 	private void followTrends() {
@@ -97,6 +96,7 @@ public class NArmedBanditGame extends Game {
 
 	@EventListener
 	public void endOfTimeStep(EndOfTimeCycle e) {
+		roundNumber++;
 		generateRound();
 		followTrends();
 	}

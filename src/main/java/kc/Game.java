@@ -8,13 +8,12 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
 
+import kc.util.KCStorage;
 import kc.util.MultiUserQueue;
 
 import org.apache.log4j.Logger;
 
 import uk.ac.imperial.presage2.core.Action;
-import uk.ac.imperial.presage2.core.db.StorageService;
-import uk.ac.imperial.presage2.core.db.persistent.TransientAgentState;
 import uk.ac.imperial.presage2.core.environment.ActionHandler;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
@@ -30,12 +29,18 @@ import com.google.inject.Inject;
 public abstract class Game extends EnvironmentService implements ActionHandler {
 
 	protected final Logger logger = Logger.getLogger(Game.class);
-	protected StorageService sto;
+	Map<UUID, String> names = new HashMap<UUID, String>();
 	Map<UUID, MultiUserQueue<Measured>> measured = new HashMap<UUID, MultiUserQueue<Measured>>();
 
+	protected KCStorage sto = null;
+
 	@Inject
-	public Game(EnvironmentSharedStateAccess sharedState, StorageService sto) {
+	public Game(EnvironmentSharedStateAccess sharedState) {
 		super(sharedState);
+	}
+
+	@Inject(optional = true)
+	public void setDb(KCStorage sto) {
 		this.sto = sto;
 	}
 
@@ -50,6 +55,7 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 		sharedState.create("account", req.getParticipantID(), new Double(0));
 		sharedState.create("measured", req.getParticipantID(),
 				new LinkedList<Measured>());
+		names.put(req.getParticipantID(), req.getParticipant().getName());
 	}
 
 	@Override
@@ -68,10 +74,11 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 						logger.warn(account);
 					} else {
 						account += u;
-						TransientAgentState tas = sto
-								.getAgentState(actor, time);
-						tas.setProperty("u", Double.toString(account));
-						tas.setProperty("a", Integer.toString(s.getId()));
+
+						if (sto != null) {
+							sto.insertPlayerGameRound(time, names.get(actor),
+									s.getId(), u, account);
+						}
 					}
 					return account;
 				}

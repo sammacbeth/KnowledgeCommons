@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
 import java.util.Set;
 
+import kc.util.KCStorage;
 import uk.ac.imperial.einst.Action;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Module;
@@ -13,13 +14,19 @@ import uk.ac.imperial.einst.ipower.IPower;
 import uk.ac.imperial.einst.resource.ProvisionAppropriationSystem;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+import uk.ac.imperial.presage2.core.plugin.Plugin;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
-public class InstitutionService extends EnvironmentService {
+@Singleton
+public class InstitutionService extends EnvironmentService implements Plugin {
 
+	int t = 0;
 	EInstSession session;
 	IPower ipower;
+
+	KCStorage sto;
 
 	@Inject
 	public InstitutionService(EnvironmentSharedStateAccess sharedState)
@@ -36,12 +43,35 @@ public class InstitutionService extends EnvironmentService {
 		this.ipower = this.session.getModule(IPower.class);
 	}
 
+	@Inject(optional = true)
+	public void setStorage(KCStorage sto) {
+		this.sto = sto;
+	}
+
 	public EInstSession getSession() {
 		return session;
 	}
 
 	public void act(Action act) {
 		session.insert(act);
+	}
+
+	@Override
+	public void incrementTime() {
+		t++;
+	}
+
+	@Override
+	public void initialise() {
+	}
+
+	@Override
+	public void execute() {
+	}
+
+	@Override
+	public void onSimulationComplete() {
+		sto.insertDroolsSnapshot(t, session.getObjects());
 	}
 
 }

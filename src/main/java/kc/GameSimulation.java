@@ -40,6 +40,7 @@ public class GameSimulation extends InjectedSimulation {
 
 	public static Class<? extends Game> game;
 
+	InstitutionService inst;
 	EInstSession session;
 
 	public GameSimulation(Set<AbstractModule> modules) {
@@ -49,8 +50,9 @@ public class GameSimulation extends InjectedSimulation {
 	@Inject
 	public void setServiceProvider(EnvironmentServiceProvider serviceProvider) {
 		try {
-			this.session = serviceProvider.getEnvironmentService(
-					InstitutionService.class).getSession();
+			this.inst = serviceProvider
+					.getEnvironmentService(InstitutionService.class);
+			this.session = this.inst.getSession();
 		} catch (UnavailableServiceException e) {
 			logger.fatal("No institution service", e);
 		}
@@ -109,6 +111,8 @@ public class GameSimulation extends InjectedSimulation {
 		session.insert(new RoleOf(a1, i, "gatherer"));
 		session.insert(new RoleOf(a2, i, "gatherer"));
 		session.insert(new RoleOf(a3, i, "gatherer"));
+
+		s.addPlugin(this.inst);
 	}
 
 	@EventListener
