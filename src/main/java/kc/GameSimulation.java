@@ -1,6 +1,8 @@
 package kc;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import kc.agents.AbstractAgent;
@@ -21,7 +23,6 @@ import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
-import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
 import uk.ac.imperial.presage2.util.network.NetworkModule;
 
@@ -34,6 +35,12 @@ public class GameSimulation extends InjectedSimulation {
 	public static int numStrategies;
 	@Parameter(name = "gameClass")
 	public String gameClass;
+	@Parameter(name = "gathererLimit", optional = true)
+	public int gathererLimit = 10;
+	@Parameter(name="stratVolatility", optional = true)
+	public static double stratVolatility = 0.01;
+	@Parameter(name="stratVariability", optional = true)
+	public static double stratVariability = 0.01;
 
 	public int iaCount = 10;
 	public int raCount = 5;
@@ -85,32 +92,45 @@ public class GameSimulation extends InjectedSimulation {
 	protected void addToScenario(Scenario s) {
 		this.session.LOG_WM = false;
 
-		AbstractAgent a1 = new GathererAgent(Random.randomUUID(), "a1",
-				new RandomPredictor(), false);
-		AbstractAgent a2 = new GathererAgent(Random.randomUUID(), "a2",
-				new MeanPredictor(), true);
-		AbstractAgent a3 = new GathererAgent(Random.randomUUID(), "a3",
-				new GreedyPredictor(1.0, 0.1, 0.1), true);
-		AbstractAgent a4 = new GathererAgent(Random.randomUUID(), "a4",
-				new MeanPredictor(), true);
-		AbstractAgent a5 = new GathererAgent(Random.randomUUID(), "a5",
-				new GreedyPredictor(1.0, 0.1, 0.1), true);
-		s.addParticipant(a1);
-		s.addParticipant(a2);
-		s.addParticipant(a3);
-		s.addParticipant(a4);
-		s.addParticipant(a5);
+		List<AbstractAgent> individuals = new ArrayList<AbstractAgent>(10);
+		List<AbstractAgent> gatherers = new ArrayList<AbstractAgent>(10);
+		gatherers.add(new GathererAgent("rand", new RandomPredictor(), false));
 
-		Set<String> roles = new HashSet<String>();
-		roles.add("gatherer");
+		individuals.add(new GathererAgent("mean", new MeanPredictor(), false));
+		gatherers.add(new GathererAgent("mean-con", new MeanPredictor(), true));
+
+		// Reinforcement learning agents
+		for (double q0 : new Double[] { 0.5, 1.0 }) {
+			for (double alpha : new Double[] { 0.9, 0.5, 0.1 }) {
+				for (double epsilon : new Double[] { 0.1, 0.005, 0.0 }) {
+					String name = (q0 == 0.5 ? "pess" : "opt");
+					name += "-" + alpha + "-" + epsilon;
+					individuals.add(new GathererAgent(name,
+							new GreedyPredictor(q0, alpha, epsilon), false));
+					gatherers.add(new GathererAgent(name + "-con",
+							new GreedyPredictor(q0, alpha, epsilon), true));
+				}
+			}
+		}
+
+		Set<String> contribRole = new HashSet<String>();
+		contribRole.add("gatherer");
+		Set<String> extractRole = new HashSet<String>();
+		extractRole.add("consumer");
 		Institution i = new DataInstitution("i1");
-		Pool p = new Pool(i, roles, roles, new ArtifactTypeMatcher(
+		Pool p = new Pool(i, contribRole, extractRole, new ArtifactTypeMatcher(
 				Measured.class));
 		session.insert(p);
 
-		session.insert(new RoleOf(a1, i, "gatherer"));
-		session.insert(new RoleOf(a2, i, "gatherer"));
-		session.insert(new RoleOf(a3, i, "gatherer"));
+		for (AbstractAgent ag : individuals) {
+			s.addParticipant(ag);
+		}
+		for (AbstractAgent ag : gatherers) {
+			s.addParticipant(ag);
+			if (gathererLimit-- > 0)
+				session.insert(new RoleOf(ag, i, "gatherer"));
+			session.insert(new RoleOf(ag, i, "consumer"));
+		}
 
 		s.addPlugin(this.inst);
 	}

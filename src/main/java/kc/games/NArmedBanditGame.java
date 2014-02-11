@@ -34,8 +34,8 @@ public class NArmedBanditGame extends Game {
 
 	double[] currentRound;
 
-	final double maxChangeRate = 0.01;
-	final double maxStd = 0.001;
+	final double maxChangeRate;
+	final double maxStd;
 
 	int roundNumber = 0;
 
@@ -46,6 +46,8 @@ public class NArmedBanditGame extends Game {
 		this.bandits = new Vector<NumberGenerator<Double>>();
 		this.banditMeans = new Vector<AdjustableNumberGenerator<Double>>();
 		this.trends = new double[GameSimulation.numStrategies];
+		this.maxChangeRate = GameSimulation.stratVariability;
+		this.maxStd = GameSimulation.stratVolatility;
 
 		Random rnd = new XORShiftRNG();
 		for (int i = 0; i < GameSimulation.numStrategies; i++) {

@@ -1,14 +1,13 @@
 package kc.agents;
 
-import java.util.UUID;
-
 import kc.prediction.Predictor;
+import uk.ac.imperial.presage2.core.util.random.Random;
 
 public class GathererAgent extends AbstractAgent {
 
-	public GathererAgent(UUID id, String name, Predictor predictor,
+	public GathererAgent(String name, Predictor predictor,
 			boolean consumer) {
-		super(id, name);
+		super(Random.randomUUID(), name);
 		addBehaviour(new GameplayBehaviour(this, predictor));
 		addBehaviour(new GathererBehaviour(this));
 		if (consumer)

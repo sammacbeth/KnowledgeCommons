@@ -34,7 +34,7 @@ public class GameplayBehaviour implements Behaviour {
 
 	@Override
 	public void doBehaviour() {
-		s.logger.info("Account is: " + s.game.getScore(s.getID()));
+		//s.logger.info("Account is: " + s.game.getScore(s.getID()));
 
 		while (!incMeasured.isEmpty()) {
 			this.predictor.addTrainingData(incMeasured.poll());
@@ -45,7 +45,7 @@ public class GameplayBehaviour implements Behaviour {
 		chosen.setMeasure(measure);
 
 		// play the game
-		s.logger.info(chosen);
+		//s.logger.info(chosen);
 		s.act(chosen);
 	}
 

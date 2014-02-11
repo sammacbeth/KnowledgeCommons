@@ -13,7 +13,6 @@ import uk.ac.imperial.einst.ipower.IPower;
 import uk.ac.imperial.einst.ipower.PowerReactive;
 import uk.ac.imperial.einst.resource.Appropriate;
 import uk.ac.imperial.einst.resource.AppropriationsListener;
-import uk.ac.imperial.einst.resource.Provision;
 import uk.ac.imperial.einst.resource.ProvisionAppropriationSystem;
 import uk.ac.imperial.einst.resource.Request;
 
@@ -58,7 +57,7 @@ public class ConsumerBehaviour implements Behaviour, PowerReactive,
 	@Override
 	public void doBehaviour() {
 		if (checkTargets) {
-			for (Action act : pow.powList(s, new Provision(s, null,
+			for (Action act : pow.powList(s, new Appropriate(s, null,
 					new Measured(null, 0, 0, 0)))) {
 				appTargets.add(act.getInst());
 			}
