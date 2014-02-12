@@ -2,6 +2,7 @@ package kc.agents;
 
 import java.util.Queue;
 
+import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import kc.Measured;
 import kc.Strategy;
 import kc.prediction.Predictor;
@@ -34,7 +35,7 @@ public class GameplayBehaviour implements Behaviour {
 
 	@Override
 	public void doBehaviour() {
-		//s.logger.info("Account is: " + s.game.getScore(s.getID()));
+		// s.logger.info("Account is: " + s.game.getScore(s.getID()));
 
 		while (!incMeasured.isEmpty()) {
 			this.predictor.addTrainingData(incMeasured.poll());
@@ -45,8 +46,12 @@ public class GameplayBehaviour implements Behaviour {
 		chosen.setMeasure(measure);
 
 		// play the game
-		//s.logger.info(chosen);
-		s.act(chosen);
+		// s.logger.info(chosen);
+		try {
+			s.act(chosen);
+		} catch (ActionHandlingException e) {
+			s.logger.warn(e);
+		}
 	}
 
 }

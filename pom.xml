@@ -6,7 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
-		<presage.version>0.3.4</presage.version>
+		<presage.version>0.4.0-SNAPSHOT</presage.version>
 	</properties>
 
 	<dependencies>
@@ -41,7 +41,7 @@
 			<artifactId>presage2-sqldb</artifactId>
 			<version>${presage.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>uk.ac.imperial</groupId>
 			<artifactId>drools-einst</artifactId>
@@ -66,7 +66,6 @@
 
 	<build>
 		<plugins>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -74,6 +73,19 @@
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+					<archive>
+						<manifest>
+							<mainClass>kc.util.KCCLI</mainClass>
+						</manifest>
+					</archive>
 				</configuration>
 			</plugin>
 		</plugins>

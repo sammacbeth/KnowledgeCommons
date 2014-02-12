@@ -1,6 +1,7 @@
 package kc;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,7 +31,8 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 
 	protected final Logger logger = Logger.getLogger(Game.class);
 	Map<UUID, String> names = new HashMap<UUID, String>();
-	Map<UUID, MultiUserQueue<Measured>> measured = new HashMap<UUID, MultiUserQueue<Measured>>();
+	Map<UUID, MultiUserQueue<Measured>> measured = Collections
+			.synchronizedMap(new HashMap<UUID, MultiUserQueue<Measured>>());
 
 	protected KCStorage sto = null;
 

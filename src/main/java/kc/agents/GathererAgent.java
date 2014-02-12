@@ -5,8 +5,7 @@ import uk.ac.imperial.presage2.core.util.random.Random;
 
 public class GathererAgent extends AbstractAgent {
 
-	public GathererAgent(String name, Predictor predictor,
-			boolean consumer) {
+	public GathererAgent(String name, Predictor predictor, boolean consumer) {
 		super(Random.randomUUID(), name);
 		addBehaviour(new GameplayBehaviour(this, predictor));
 		addBehaviour(new GathererBehaviour(this));

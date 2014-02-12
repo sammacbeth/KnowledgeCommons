@@ -71,7 +71,8 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 
 	@Override
 	public void onSimulationComplete() {
-		sto.insertDroolsSnapshot(t, session.getObjects());
+		if (sto != null)
+			sto.insertDroolsSnapshot(t, session.getObjects());
 	}
 
 }

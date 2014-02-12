@@ -1,5 +1,6 @@
 package kc.games;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -15,6 +16,8 @@ import org.uncommons.maths.number.AdjustableNumberGenerator;
 import org.uncommons.maths.number.ConstantGenerator;
 import org.uncommons.maths.number.NumberGenerator;
 import org.uncommons.maths.random.GaussianGenerator;
+import org.uncommons.maths.random.SeedException;
+import org.uncommons.maths.random.SeedGenerator;
 import org.uncommons.maths.random.XORShiftRNG;
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
@@ -40,7 +43,8 @@ public class NArmedBanditGame extends Game {
 	int roundNumber = 0;
 
 	@Inject
-	public NArmedBanditGame(EnvironmentSharedStateAccess sharedState) {
+	public NArmedBanditGame(EnvironmentSharedStateAccess sharedState)
+			throws SeedException {
 		super(sharedState);
 		this.strategies = new ArrayList<Strategy>();
 		this.bandits = new Vector<NumberGenerator<Double>>();
@@ -49,7 +53,8 @@ public class NArmedBanditGame extends Game {
 		this.maxChangeRate = GameSimulation.stratVariability;
 		this.maxStd = GameSimulation.stratVolatility;
 
-		Random rnd = new XORShiftRNG();
+		// seeded random
+		Random rnd = new XORShiftRNG(new BadSeedGenerator(GameSimulation.seed));
 		for (int i = 0; i < GameSimulation.numStrategies; i++) {
 			Strategy s = new Strategy(i);
 			this.strategies.add(s);
@@ -86,13 +91,25 @@ public class NArmedBanditGame extends Game {
 	}
 
 	private void followTrends() {
+		double meanSum = 0;
+		double[] means = new double[trends.length];
 		for (int i = 0; i < trends.length; i++) {
 			AdjustableNumberGenerator<Double> ng = banditMeans.get(i);
-			double mean = ng.nextValue() + trends[i];
-			if (mean > 1.0 || mean < 0.0) {
+			means[i] = ng.nextValue() + trends[i];
+			meanSum += means[i];
+			if ((means[i] > 1.0 && trends[i] > 0)
+					|| (means[i] < 0.0 && trends[i] < 0)) {
 				trends[i] = -1 * trends[i];
 			}
-			ng.setValue(mean);
+		}
+		// normalise means
+		double normFactor = 2 * meanSum / means.length;
+		meanSum = 0;
+		for (int i = 0; i < means.length; i++) {
+			AdjustableNumberGenerator<Double> ng = banditMeans.get(i);
+			means[i] /= normFactor;
+			meanSum += means[i];
+			ng.setValue(means[i]);
 		}
 	}
 
@@ -116,6 +133,22 @@ public class NArmedBanditGame extends Game {
 	@Override
 	public List<Strategy> getStrategies() {
 		return strategies;
+	}
+
+	class BadSeedGenerator implements SeedGenerator {
+
+		final long seed;
+
+		public BadSeedGenerator(long seed) {
+			super();
+			this.seed = seed;
+		}
+
+		@Override
+		public byte[] generateSeed(int arg0) throws SeedException {
+			return ByteBuffer.allocate(arg0).putLong(this.seed).array();
+		}
+
 	}
 
 }

@@ -10,11 +10,13 @@ import kc.agents.GathererAgent;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.MeanPredictor;
 import kc.prediction.RandomPredictor;
+import kc.util.KCStorage;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.access.RoleOf;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
+import uk.ac.imperial.presage2.core.db.StorageService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventBus;
@@ -37,10 +39,12 @@ public class GameSimulation extends InjectedSimulation {
 	public String gameClass;
 	@Parameter(name = "gathererLimit", optional = true)
 	public int gathererLimit = 10;
-	@Parameter(name="stratVolatility", optional = true)
+	@Parameter(name = "stratVolatility", optional = true)
 	public static double stratVolatility = 0.01;
-	@Parameter(name="stratVariability", optional = true)
+	@Parameter(name = "stratVariability", optional = true)
 	public static double stratVariability = 0.01;
+	@Parameter(name = "seed")
+	public static int seed = 1;
 
 	public int iaCount = 10;
 	public int raCount = 5;
@@ -85,6 +89,12 @@ public class GameSimulation extends InjectedSimulation {
 				.addParticipantGlobalEnvironmentService(
 						InstitutionService.class));
 		modules.add(NetworkModule.noNetworkModule());
+		modules.add(new AbstractModule() {
+			@Override
+			protected void configure() {
+				bind(StorageService.class).to(KCStorage.class);
+			}
+		});
 		return modules;
 	}
 

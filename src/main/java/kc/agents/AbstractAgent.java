@@ -11,8 +11,6 @@ import kc.InstitutionService;
 import org.apache.log4j.Logger;
 
 import uk.ac.imperial.einst.Actor;
-import uk.ac.imperial.presage2.core.Action;
-import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
@@ -63,14 +61,6 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 	@Override
 	public String toString() {
 		return this.getName();
-	}
-
-	void act(Action act) {
-		try {
-			environment.act(act, getID(), authkey);
-		} catch (ActionHandlingException e) {
-			logger.warn(e);
-		}
 	}
 
 	void addAdditionalBehaviour(Behaviour b) {
