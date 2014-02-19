@@ -111,8 +111,8 @@ public class GameSimulation extends InjectedSimulation {
 
 		// Reinforcement learning agents
 		for (double q0 : new Double[] { 0.5, 1.0 }) {
-			for (double alpha : new Double[] { 0.9, 0.5, 0.1 }) {
-				for (double epsilon : new Double[] { 0.1, 0.005, 0.0 }) {
+			for (double alpha : new Double[] { 0.5 }) {
+				for (double epsilon : new Double[] { 0.005, 0.01, 0.00 }) {
 					String name = (q0 == 0.5 ? "pess" : "opt");
 					name += "-" + alpha + "-" + epsilon;
 					individuals.add(new GathererAgent(name,
@@ -134,6 +134,8 @@ public class GameSimulation extends InjectedSimulation {
 
 		for (AbstractAgent ag : individuals) {
 			s.addParticipant(ag);
+			if (gathererLimit-- > 0)
+				session.insert(new RoleOf(ag, i, "gatherer"));
 		}
 		for (AbstractAgent ag : gatherers) {
 			s.addParticipant(ag);

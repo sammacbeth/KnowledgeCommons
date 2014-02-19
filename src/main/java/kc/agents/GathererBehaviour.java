@@ -39,15 +39,15 @@ public class GathererBehaviour implements Behaviour, PowerReactive {
 		} catch (UnavailableModuleException e) {
 			throw new RuntimeException(e);
 		}
-		pow.registerPowerListener(s, new Provision(s, null, new Measured(null,
-				0, 0, 0)), this);
+		pow.registerPowerListener(s, new Provision(s, null, new Measured()),
+				this);
 	}
 
 	@Override
 	public void doBehaviour() {
 		if (checkTargets) {
 			for (Action act : pow.powList(s, new Provision(s, null,
-					new Measured(null, 0, 0, 0)))) {
+					new Measured()))) {
 				provisionTargets.add(act.getInst());
 			}
 			checkTargets = false;

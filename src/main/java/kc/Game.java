@@ -88,7 +88,8 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 
 			if (s.measure) {
 				getMeasuredQueue(actor).publish(
-						new Measured(getState(actor), s.getId(), u, time));
+						new Measured(names.get(actor), getState(actor), s
+								.getId(), u, time));
 			}
 		}
 		return null;

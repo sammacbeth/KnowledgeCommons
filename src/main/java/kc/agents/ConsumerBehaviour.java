@@ -49,8 +49,8 @@ public class ConsumerBehaviour implements Behaviour, PowerReactive,
 		} catch (UnavailableModuleException e) {
 			throw new RuntimeException(e);
 		}
-		pow.registerPowerListener(s, new Appropriate(s, null, new Measured(
-				null, 0, 0, 0)), this);
+		pow.registerPowerListener(s, new Appropriate(s, null, new Measured()),
+				this);
 		sys.registerForAppropriations(s, this);
 	}
 
@@ -58,7 +58,7 @@ public class ConsumerBehaviour implements Behaviour, PowerReactive,
 	public void doBehaviour() {
 		if (checkTargets) {
 			for (Action act : pow.powList(s, new Appropriate(s, null,
-					new Measured(null, 0, 0, 0)))) {
+					new Measured()))) {
 				appTargets.add(act.getInst());
 			}
 			checkTargets = false;
