@@ -1,8 +1,6 @@
 package kc;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import kc.agents.AbstractAgent;
@@ -102,27 +100,6 @@ public class GameSimulation extends InjectedSimulation {
 	protected void addToScenario(Scenario s) {
 		this.session.LOG_WM = false;
 
-		List<AbstractAgent> individuals = new ArrayList<AbstractAgent>(10);
-		List<AbstractAgent> gatherers = new ArrayList<AbstractAgent>(10);
-		gatherers.add(new GathererAgent("rand", new RandomPredictor(), false));
-
-		individuals.add(new GathererAgent("mean", new MeanPredictor(), false));
-		gatherers.add(new GathererAgent("mean-con", new MeanPredictor(), true));
-
-		// Reinforcement learning agents
-		for (double q0 : new Double[] { 0.5, 1.0 }) {
-			for (double alpha : new Double[] { 0.5 }) {
-				for (double epsilon : new Double[] { 0.005, 0.01, 0.00 }) {
-					String name = (q0 == 0.5 ? "pess" : "opt");
-					name += "-" + alpha + "-" + epsilon;
-					individuals.add(new GathererAgent(name,
-							new GreedyPredictor(q0, alpha, epsilon), false));
-					gatherers.add(new GathererAgent(name + "-con",
-							new GreedyPredictor(q0, alpha, epsilon), true));
-				}
-			}
-		}
-
 		Set<String> contribRole = new HashSet<String>();
 		contribRole.add("gatherer");
 		Set<String> extractRole = new HashSet<String>();
@@ -132,16 +109,33 @@ public class GameSimulation extends InjectedSimulation {
 				Measured.class));
 		session.insert(p);
 
-		for (AbstractAgent ag : individuals) {
+		for (int n = 0; n < gathererLimit; n++) {
+			AbstractAgent ag = new GathererAgent("rand" + n,
+					new RandomPredictor(), false);
 			s.addParticipant(ag);
-			if (gathererLimit-- > 0)
-				session.insert(new RoleOf(ag, i, "gatherer"));
+			session.insert(new RoleOf(ag, i, "gatherer"));
 		}
-		for (AbstractAgent ag : gatherers) {
-			s.addParticipant(ag);
-			if (gathererLimit-- > 0)
-				session.insert(new RoleOf(ag, i, "gatherer"));
-			session.insert(new RoleOf(ag, i, "consumer"));
+
+		s.addParticipant(new GathererAgent("mean", new MeanPredictor(), false));
+		AbstractAgent ag = new GathererAgent("mean-con", new MeanPredictor(),
+				true);
+		session.insert(new RoleOf(ag, i, "consumer"));
+		s.addParticipant(ag);
+
+		// Reinforcement learning agents
+		for (double q0 : new Double[] { 0.5 }) {
+			for (double alpha : new Double[] { 0.5 }) {
+				for (double epsilon : new Double[] { 0.005, 0.01, 0.00 }) {
+					String name = (q0 == 0.5 ? "pess" : "opt");
+					name += "-" + alpha + "-" + epsilon;
+					s.addParticipant(new GathererAgent(name,
+							new GreedyPredictor(q0, alpha, epsilon), false));
+					ag = new GathererAgent(name + "-con", new GreedyPredictor(
+							q0, alpha, epsilon), true);
+					session.insert(new RoleOf(ag, i, "consumer"));
+					s.addParticipant(ag);
+				}
+			}
 		}
 
 		s.addPlugin(this.inst);
