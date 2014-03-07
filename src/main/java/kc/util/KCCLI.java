@@ -105,8 +105,8 @@ public class KCCLI extends Presage2CLI {
 				"kc.GameSimulation", 100);
 		bandits.addArrayParameter("gameClass",
 				new String[] { "kc.games.NArmedBanditGame" });
-		bandits.addArrayParameter("numStrategies", new String[] { "2", "16",
-				"32" });
+		bandits.addArrayParameter("numStrategies", new String[] { "2", "4",
+				"8", "16", "32", "64", "128", "256", "512", "1024", "2048" });
 		bandits.addArrayParameter("stratVariability", new String[] { "0.1",
 				"0.01", "0.001" });
 		bandits.addArrayParameter("stratVolatility", new String[] { "0.01" });
