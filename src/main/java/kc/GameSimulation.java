@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import kc.agents.AbstractAgent;
-import kc.agents.GathererAgent;
+import kc.agents.PlayerAgent;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.MeanPredictor;
 import kc.prediction.RandomPredictor;
@@ -110,14 +110,14 @@ public class GameSimulation extends InjectedSimulation {
 		session.insert(p);
 
 		for (int n = 0; n < gathererLimit; n++) {
-			AbstractAgent ag = new GathererAgent("rand" + n,
+			AbstractAgent ag = new PlayerAgent("rand" + n,
 					new RandomPredictor(), false);
 			s.addParticipant(ag);
 			session.insert(new RoleOf(ag, i, "gatherer"));
 		}
 
-		s.addParticipant(new GathererAgent("mean", new MeanPredictor(), false));
-		AbstractAgent ag = new GathererAgent("mean-con", new MeanPredictor(),
+		s.addParticipant(new PlayerAgent("mean", new MeanPredictor(), false));
+		AbstractAgent ag = new PlayerAgent("mean-con", new MeanPredictor(),
 				true);
 		session.insert(new RoleOf(ag, i, "consumer"));
 		s.addParticipant(ag);
@@ -128,9 +128,9 @@ public class GameSimulation extends InjectedSimulation {
 				for (double epsilon : new Double[] { 0.005, 0.01, 0.00 }) {
 					String name = (q0 == 0.5 ? "pess" : "opt");
 					name += "-" + alpha + "-" + epsilon;
-					s.addParticipant(new GathererAgent(name,
+					s.addParticipant(new PlayerAgent(name,
 							new GreedyPredictor(q0, alpha, epsilon), false));
-					ag = new GathererAgent(name + "-con", new GreedyPredictor(
+					ag = new PlayerAgent(name + "-con", new GreedyPredictor(
 							q0, alpha, epsilon), true);
 					session.insert(new RoleOf(ag, i, "consumer"));
 					s.addParticipant(ag);

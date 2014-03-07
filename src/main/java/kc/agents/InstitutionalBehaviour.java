@@ -11,7 +11,6 @@ import uk.ac.imperial.einst.ipower.ObligationReactive;
 
 public class InstitutionalBehaviour implements Behaviour, ObligationReactive {
 
-	private static final String TYPE = "inst";
 	final AbstractAgent s;
 
 	Queue<Obl> obligations = new LinkedList<Obl>();
@@ -23,11 +22,6 @@ public class InstitutionalBehaviour implements Behaviour, ObligationReactive {
 	public InstitutionalBehaviour(AbstractAgent s) {
 		super();
 		this.s = s;
-	}
-
-	@Override
-	public String getType() {
-		return TYPE;
 	}
 
 	@Override
