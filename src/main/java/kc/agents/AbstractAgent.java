@@ -81,69 +81,99 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		behaviours.add(b);
 	}
 
-	class AppropriateMeasuredBehaviour implements Behaviour, PowerReactive,
-			AppropriationsListener {
+	void sendEvent(String type, Object value) {
+		for (Behaviour b : behaviours) {
+			b.onEvent(type, value);
+		}
+	}
 
+	abstract class PowerReactiveBehaviour implements Behaviour, PowerReactive {
 		IPower pow;
-		ProvisionAppropriationSystem sys;
-		Set<Institution> appTargets = new HashSet<Institution>();
-		boolean checkTargets = false;
+		Set<Institution> institutions = new HashSet<Institution>();
+		boolean checkInstitutions = false;
+		final Action powAction;
 
-		int lastRequest = -1;
-
-		public AppropriateMeasuredBehaviour() {
+		public PowerReactiveBehaviour(Action powAction) {
 			super();
+			this.powAction = powAction;
 		}
 
 		@Override
 		public void initialise() {
 			try {
 				pow = inst.getSession().getModule(IPower.class);
+			} catch (UnavailableModuleException e) {
+				throw new RuntimeException(e);
+			}
+			pow.registerPowerListener(AbstractAgent.this, powAction, this);
+		}
+
+		@Override
+		public void doBehaviour() {
+			if (checkInstitutions) {
+				// check for institutions I can provision to.
+				for (Action act : pow.powList(AbstractAgent.this, powAction)) {
+					institutions.add(act.getInst());
+				}
+				checkInstitutions = false;
+			}
+		}
+
+		@Override
+		public void onPower(Action act) {
+			institutions.add(act.getInst());
+		}
+
+		@Override
+		public void onPowerRetraction(Action pow) {
+			// rebuild list
+			institutions.clear();
+			checkInstitutions = true;
+		}
+
+	}
+
+	class AppropriateMeasuredBehaviour extends PowerReactiveBehaviour implements
+			AppropriationsListener {
+
+		ProvisionAppropriationSystem sys;
+		int lastRequest = -1;
+
+		public AppropriateMeasuredBehaviour() {
+			super(new Appropriate(AbstractAgent.this, null, new Measured()));
+		}
+
+		@Override
+		public void initialise() {
+			super.initialise();
+			try {
 				sys = inst.getSession().getModule(
 						ProvisionAppropriationSystem.class);
 			} catch (UnavailableModuleException e) {
 				throw new RuntimeException(e);
 			}
-			pow.registerPowerListener(AbstractAgent.this, new Appropriate(
-					AbstractAgent.this, null, new Measured()), this);
 			sys.registerForAppropriations(AbstractAgent.this, this);
 		}
 
 		@Override
 		public void doBehaviour() {
-			if (checkTargets) {
-				for (Action act : pow.powList(AbstractAgent.this,
-						new Appropriate(AbstractAgent.this, null,
-								new Measured()))) {
-					appTargets.add(act.getInst());
-				}
-				checkTargets = false;
-			}
-			for (Institution i : appTargets) {
+			for (Institution i : institutions) {
 				inst.act(new Request(AbstractAgent.this, i,
 						new MeasuredMatcher().setNewerThan(lastRequest), 10));
 			}
 		}
 
 		@Override
-		public void onPower(Action act) {
-			appTargets.add(act.getInst());
-		}
-
-		@Override
-		public void onPowerRetraction(Action act) {
-			// rebuild list
-			appTargets.clear();
-			checkTargets = true;
-		}
-
-		@Override
-		public void onAppropriation(Object artifact) {
+		public void onAppropriation(Object artifact, Institution from) {
 			if (artifact instanceof Measured) {
 				Measured m = (Measured) artifact;
 				this.lastRequest = Math.max(this.lastRequest, m.getT());
 				measured.publish(m);
 			}
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
 		}
 
 	}
@@ -184,6 +214,10 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		@Override
 		public void onObligation(Obl obl) {
 			obligations.add(obl);
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
 		}
 	}
 

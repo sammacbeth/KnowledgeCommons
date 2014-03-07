@@ -6,4 +6,6 @@ interface Behaviour {
 
 	void doBehaviour();
 
+	void onEvent(String type, Object value);
+
 }

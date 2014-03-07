@@ -18,8 +18,6 @@ public abstract class ReinforcementPredictor extends Predictor {
 
 	Map<Pair<State, Integer>, QValue> q = new HashMap<Pair<State, Integer>, QValue>();
 
-	// Set<Measured> alreadyAdded = new HashSet<Measured>();
-
 	public ReinforcementPredictor(double q0, Stepsize stepsize) {
 		super();
 		this.q0 = q0;
