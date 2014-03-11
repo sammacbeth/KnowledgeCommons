@@ -6,15 +6,12 @@ import java.util.Set;
 import kc.agents.AbstractAgent;
 import kc.agents.PlayerAgent;
 import kc.prediction.GreedyPredictor;
-import kc.prediction.MeanPredictor;
 import kc.prediction.RandomPredictor;
-import kc.util.KCStorage;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.access.RoleOf;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
-import uk.ac.imperial.presage2.core.db.StorageService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventBus;
@@ -87,19 +84,29 @@ public class GameSimulation extends InjectedSimulation {
 				.addParticipantGlobalEnvironmentService(
 						InstitutionService.class));
 		modules.add(NetworkModule.noNetworkModule());
-		modules.add(new AbstractModule() {
-			@Override
-			protected void configure() {
-				bind(StorageService.class).to(KCStorage.class);
-			}
-		});
+		/*
+		 * modules.add(new AbstractModule() {
+		 * 
+		 * @Override protected void configure() {
+		 * bind(StorageService.class).to(KCStorage.class); } });
+		 */
 		return modules;
 	}
 
 	@Override
 	protected void addToScenario(Scenario s) {
-		this.session.LOG_WM = false;
+		this.session.LOG_WM = true;
+		s.addPlugin(this.inst);
 
+		banditExprSetup(s);
+	}
+
+	@EventListener
+	public void incrementTime(EndOfTimeCycle e) {
+		session.incrementTime();
+	}
+
+	void banditExprSetup(Scenario s) {
 		Set<String> contribRole = new HashSet<String>();
 		contribRole.add("gatherer");
 		Set<String> extractRole = new HashSet<String>();
@@ -116,33 +123,21 @@ public class GameSimulation extends InjectedSimulation {
 			session.insert(new RoleOf(ag, i, "gatherer"));
 		}
 
-		s.addParticipant(new PlayerAgent("mean", new MeanPredictor(), false));
-		AbstractAgent ag = new PlayerAgent("mean-con", new MeanPredictor(),
-				true);
-		session.insert(new RoleOf(ag, i, "consumer"));
-		s.addParticipant(ag);
-
 		// Reinforcement learning agents
 		for (double q0 : new Double[] { 0.5 }) {
 			for (double alpha : new Double[] { 0.5 }) {
-				for (double epsilon : new Double[] { 0.005, 0.01, 0.00 }) {
+				for (double epsilon : new Double[] { 0.01 }) {
 					String name = (q0 == 0.5 ? "pess" : "opt");
 					name += "-" + alpha + "-" + epsilon;
-					s.addParticipant(new PlayerAgent(name,
-							new GreedyPredictor(q0, alpha, epsilon), false));
-					ag = new PlayerAgent(name + "-con", new GreedyPredictor(
-							q0, alpha, epsilon), true);
+					s.addParticipant(new PlayerAgent(name, new GreedyPredictor(
+							q0, alpha, epsilon), false));
+					AbstractAgent ag = PlayerAgent.knowledgePlayer(name,
+							new GreedyPredictor(q0, alpha, epsilon));
 					session.insert(new RoleOf(ag, i, "consumer"));
 					s.addParticipant(ag);
 				}
 			}
 		}
-
-		s.addPlugin(this.inst);
 	}
 
-	@EventListener
-	public void incrementTime(EndOfTimeCycle e) {
-		session.incrementTime();
-	}
 }

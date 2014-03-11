@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.Vector;
 
 import kc.Game;
-import kc.GameSimulation;
 import kc.State;
 import kc.Strategy;
 
@@ -26,6 +25,7 @@ import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 
 @Singleton
 public class NArmedBanditGame extends Game {
@@ -43,19 +43,22 @@ public class NArmedBanditGame extends Game {
 	int roundNumber = 0;
 
 	@Inject
-	public NArmedBanditGame(EnvironmentSharedStateAccess sharedState)
-			throws SeedException {
+	public NArmedBanditGame(EnvironmentSharedStateAccess sharedState,
+			@Named("params.numStrategies") int numStrat,
+			@Named("params.stratVariability") double var,
+			@Named("params.stratVolatility") double vol,
+			@Named("params.seed") int seed) throws SeedException {
 		super(sharedState);
 		this.strategies = new ArrayList<Strategy>();
 		this.bandits = new Vector<NumberGenerator<Double>>();
 		this.banditMeans = new Vector<AdjustableNumberGenerator<Double>>();
-		this.trends = new double[GameSimulation.numStrategies];
-		this.maxChangeRate = GameSimulation.stratVariability;
-		this.maxStd = GameSimulation.stratVolatility;
+		this.trends = new double[numStrat];
+		this.maxChangeRate = var;
+		this.maxStd = vol;
 
 		// seeded random
-		Random rnd = new XORShiftRNG(new BadSeedGenerator(GameSimulation.seed));
-		for (int i = 0; i < GameSimulation.numStrategies; i++) {
+		Random rnd = new XORShiftRNG(new BadSeedGenerator(seed));
+		for (int i = 0; i < numStrat; i++) {
 			Strategy s = new Strategy(i);
 			this.strategies.add(s);
 			AdjustableNumberGenerator<Double> mean = new AdjustableNumberGenerator<Double>(
@@ -68,7 +71,7 @@ public class NArmedBanditGame extends Game {
 					- maxChangeRate;
 		}
 
-		currentRound = new double[GameSimulation.numStrategies];
+		currentRound = new double[numStrat];
 		generateRound();
 	}
 

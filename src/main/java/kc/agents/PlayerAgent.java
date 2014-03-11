@@ -243,6 +243,7 @@ public class PlayerAgent extends AbstractAgent {
 
 		@Override
 		public void initialise() {
+			super.initialise();
 			try {
 				sys = inst.getSession().getModule(
 						ProvisionAppropriationSystem.class);
@@ -254,6 +255,7 @@ public class PlayerAgent extends AbstractAgent {
 
 		@Override
 		public void doBehaviour() {
+			super.doBehaviour();
 			for (Institution i : institutions) {
 				inst.act(new Request(PlayerAgent.this, i,
 						new ArtifactTypeMatcher(Predictor.class), 5));
