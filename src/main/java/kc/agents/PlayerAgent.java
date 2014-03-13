@@ -1,8 +1,10 @@
 package kc.agents;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 import kc.Measured;
 import kc.State;
@@ -10,7 +12,6 @@ import kc.Strategy;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.Predictor;
 import kc.prediction.RandomPredictor;
-import kc.prediction.ReinforcementPredictor.Average;
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.UnavailableModuleException;
 import uk.ac.imperial.einst.ipower.IPower;
@@ -108,34 +109,6 @@ public class PlayerAgent extends AbstractAgent {
 
 	}
 
-	class TrainPredictorBehaviour implements Behaviour {
-
-		Predictor predictor;
-		Queue<Measured> incMeasured;
-
-		public TrainPredictorBehaviour(Predictor predictor) {
-			super();
-			this.predictor = predictor;
-		}
-
-		@Override
-		public void initialise() {
-			this.incMeasured = game.measuredQueueSubscribe(getID());
-			measured.subscribe(incMeasured);
-		}
-
-		@Override
-		public void doBehaviour() {
-			while (!incMeasured.isEmpty()) {
-				this.predictor.addTrainingData(incMeasured.poll());
-			}
-		}
-
-		@Override
-		public void onEvent(String type, Object value) {
-		}
-	}
-
 	class MultiPredictorGameplayBehaviour extends GameplayBehaviour {
 
 		List<Predictor> options = new ArrayList<Predictor>();
@@ -143,12 +116,13 @@ public class PlayerAgent extends AbstractAgent {
 
 		double prevAccount = 0;
 
-		final int strategyEvalPeriod = 10;
+		final int strategyEvalPeriod = 2;
 		Strategy current = null;
+		Strategy last = null;
 		int strategyDuration = 0;
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor) {
-			this(predictor, new GreedyPredictor(0.5, new Average(), 0.1));
+			this(predictor, new GreedyPredictor(0.5, 0.5, 0.1));
 		}
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor,
@@ -165,19 +139,24 @@ public class PlayerAgent extends AbstractAgent {
 
 		@Override
 		public void doBehaviour() {
-			if (current == null || strategyDuration-- <= 0) {
+			if (current == null || --strategyDuration <= 0) {
 				// periodically reassess strategy
 				current = strategy.actionSelection(State.NONE, getStrategies());
 				this.predictor = options.get(current.getId());
 				strategyDuration = strategyEvalPeriod;
+				logger.info("Chosen Predictor is: " + this.predictor
+						+ " with score: " + strategy.getLastScore());
 			}
-
+			
+			if (last != null) {
+				double account = game.getScore(getID());
+				strategy.addTrainingData(new Measured(null, State.NONE, current
+						.getId(), account - prevAccount, 0));
+				prevAccount = account;
+			}
+			
+			last = current;
 			super.doBehaviour();
-
-			double account = game.getScore(getID());
-			strategy.addTrainingData(new Measured(null, State.NONE, current
-					.getId(), account - prevAccount, 0));
-			prevAccount = account;
 		}
 
 		private List<Strategy> getStrategies() {
@@ -236,6 +215,7 @@ public class PlayerAgent extends AbstractAgent {
 			implements AppropriationsListener {
 
 		ProvisionAppropriationSystem sys;
+		Set<Predictor> appropriated = new HashSet<Predictor>();
 
 		public AppropriatePredictorBehaviour() {
 			super(new Appropriate(PlayerAgent.this, null, Predictor.class));
@@ -264,7 +244,8 @@ public class PlayerAgent extends AbstractAgent {
 
 		@Override
 		public void onAppropriation(Object artifact, Institution from) {
-			if (artifact instanceof Predictor) {
+			if (artifact instanceof Predictor
+					&& !appropriated.contains(artifact)) {
 				Predictor p = (Predictor) artifact;
 				sendEvent("newPredictor", new SlavePredictor(p, from));
 			}
@@ -296,6 +277,16 @@ public class PlayerAgent extends AbstractAgent {
 			inst.act(new Appropriate(PlayerAgent.this, this.source,
 					this.delegate));
 			return delegate.actionSelection(state, strategies);
+		}
+
+		@Override
+		public String toString() {
+			return "" + delegate + " from " + source + "";
+		}
+
+		@Override
+		public double getLastScore() {
+			return delegate.getLastScore();
 		}
 
 	}

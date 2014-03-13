@@ -13,6 +13,7 @@ import org.uncommons.maths.Maths;
 
 public abstract class ReinforcementPredictor extends Predictor {
 
+	boolean log = false;
 	final double q0;
 	final Stepsize stepsize;
 
@@ -53,6 +54,7 @@ public abstract class ReinforcementPredictor extends Predictor {
 				bestPayoff = qsa;
 			}
 		}
+		lastScore = bestPayoff;
 		return chosen;
 	}
 
@@ -80,6 +82,11 @@ public abstract class ReinforcementPredictor extends Predictor {
 		@Override
 		public double alpha(int k) {
 			return alpha;
+		}
+
+		@Override
+		public String toString() {
+			return "WeightedAverage[alpha="+ alpha + "]";
 		}
 
 	}

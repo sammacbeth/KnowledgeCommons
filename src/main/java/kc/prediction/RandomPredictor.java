@@ -21,4 +21,9 @@ public class RandomPredictor extends Predictor {
 		return randomStrategy(strategies);
 	}
 
+	@Override
+	public double getLastScore() {
+		return 0;
+	}
+
 }

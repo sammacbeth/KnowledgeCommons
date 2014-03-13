@@ -10,6 +10,7 @@ import kc.Strategy;
 public abstract class Predictor {
 
 	Random rnd = new Random();
+	double lastScore = 0;
 
 	protected Predictor() {
 		super();
@@ -21,7 +22,12 @@ public abstract class Predictor {
 	public abstract Strategy actionSelection(State state,
 			List<Strategy> strategies);
 
+	public double getLastScore() {
+		return lastScore;
+	}
+
 	protected Strategy randomStrategy(List<Strategy> strategies) {
+		this.lastScore = 0;
 		return strategies.get(rnd.nextInt(strategies.size()));
 	}
 

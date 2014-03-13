@@ -36,4 +36,9 @@ public class GreedyPredictor extends ReinforcementPredictor {
 			chosen = randomStrategy(strategies);
 		return chosen;
 	}
+
+	@Override
+	public String toString() {
+		return "GreedyPredictor [q0="+ q0 +", step="+ stepsize +", epsilon=" + epsilon + "]";
+	}
 }

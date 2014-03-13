@@ -11,6 +11,7 @@ import kc.Game;
 import kc.GameSimulation;
 import kc.InstitutionService;
 import kc.Measured;
+import kc.prediction.Predictor;
 import kc.util.MultiUserQueue;
 
 import org.apache.log4j.Logger;
@@ -25,6 +26,7 @@ import uk.ac.imperial.einst.ipower.ObligationReactive;
 import uk.ac.imperial.einst.ipower.PowerReactive;
 import uk.ac.imperial.einst.resource.Appropriate;
 import uk.ac.imperial.einst.resource.AppropriationsListener;
+import uk.ac.imperial.einst.resource.Provision;
 import uk.ac.imperial.einst.resource.ProvisionAppropriationSystem;
 import uk.ac.imperial.einst.resource.Request;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
@@ -157,6 +159,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 
 		@Override
 		public void doBehaviour() {
+			super.doBehaviour();
 			for (Institution i : institutions) {
 				inst.act(new Request(AbstractAgent.this, i,
 						new MeasuredMatcher().setNewerThan(lastRequest), 10));
@@ -214,6 +217,60 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		@Override
 		public void onObligation(Obl obl) {
 			obligations.add(obl);
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
+		}
+	}
+
+	class ProvisionPredictorBehaviour extends PowerReactiveBehaviour {
+
+		Predictor predictor;
+		Set<Institution> provisionedTo = new HashSet<Institution>();
+
+		public ProvisionPredictorBehaviour(Predictor p) {
+			super(new Provision(AbstractAgent.this, null, Predictor.class));
+			this.predictor = p;
+		}
+
+		@Override
+		public void doBehaviour() {
+			super.doBehaviour();
+			institutions.removeAll(provisionedTo);
+			for (Institution i : institutions) {
+				inst.act(new Provision(AbstractAgent.this, i, predictor));
+				provisionedTo.add(i);
+			}
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
+		}
+
+	}
+
+	class TrainPredictorBehaviour implements Behaviour {
+
+		Predictor predictor;
+		Queue<Measured> incMeasured;
+
+		public TrainPredictorBehaviour(Predictor predictor) {
+			super();
+			this.predictor = predictor;
+		}
+
+		@Override
+		public void initialise() {
+			this.incMeasured = game.measuredQueueSubscribe(getID());
+			measured.subscribe(incMeasured);
+		}
+
+		@Override
+		public void doBehaviour() {
+			while (!incMeasured.isEmpty()) {
+				this.predictor.addTrainingData(incMeasured.poll());
+			}
 		}
 
 		@Override
