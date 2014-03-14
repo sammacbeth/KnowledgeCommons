@@ -24,15 +24,14 @@ import org.junit.Test;
 import org.uncommons.maths.random.SeedException;
 
 import uk.ac.imperial.einst.UnavailableModuleException;
-import uk.ac.imperial.presage2.core.Action;
-import uk.ac.imperial.presage2.core.environment.ActionHandler;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.EnvironmentConnector;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationResponse;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
+import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
-import uk.ac.imperial.presage2.core.messaging.Input;
+import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.network.Message;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.network.NetworkConnector;
@@ -46,6 +45,7 @@ public class TestBehaviours {
 	Mockery context;
 	EnvironmentSharedStateAccess sharedState;
 	EnvironmentConnector env;
+	EnvironmentServiceProvider serviceProvider;
 
 	@Before
 	public void setUp() throws Exception {
@@ -53,7 +53,6 @@ public class TestBehaviours {
 		sharedState = new MappedSharedState();
 		env = context.mock(EnvironmentConnector.class);
 	}
-
 
 	@Test
 	public void testGamePlayBehaviour() throws NoSuchMethodException,
@@ -67,6 +66,7 @@ public class TestBehaviours {
 		// mock components
 		final EnvironmentConnector env = mockEnvironment();
 		InstitutionService inst = new InstitutionService(sharedState);
+		this.serviceProvider = new StubEnvironmentServiceProvider(inst);
 
 		final UUID authkey = initialiseParticipant(a, inst, getGame());
 
@@ -89,9 +89,8 @@ public class TestBehaviours {
 		a.incrementTime();
 	}
 
-
 	Game getGame() throws SeedException {
-		Game game = new NArmedBanditGame(sharedState, 1, 0, 0,
+		Game game = new NArmedBanditGame(sharedState, this.serviceProvider, 1, 0, 0,
 				Random.randomInt());
 		GameSimulation.game = NArmedBanditGame.class;
 		return game;
@@ -146,27 +145,6 @@ public class TestBehaviours {
 
 	}
 
-	class MockGame extends NArmedBanditGame {
-
-		ActionHandler delegate;
-
-		public MockGame(EnvironmentSharedStateAccess sharedState,
-				ActionHandler delegate, int numStrat, int seed)
-				throws SeedException {
-			super(sharedState, numStrat, 0, 0, seed);
-			this.delegate = delegate;
-			GameSimulation.game = this.getClass();
-		}
-
-		@Override
-		public Input handle(Action action, UUID actor)
-				throws ActionHandlingException {
-			delegate.handle(action, actor);
-			return null;
-		}
-
-	}
-
 	class StubNetworkConnectorFactory implements NetworkConnectorFactory {
 
 		@Override
@@ -200,5 +178,30 @@ public class TestBehaviours {
 		@Override
 		public void deliverMessage(Message m) {
 		}
+	}
+
+	class StubEnvironmentServiceProvider implements EnvironmentServiceProvider {
+
+		Set<EnvironmentService> services = new HashSet<EnvironmentService>();
+
+		StubEnvironmentServiceProvider(EnvironmentService... services) {
+			super();
+			for (EnvironmentService s : services) {
+				this.services.add(s);
+			}
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public <T extends EnvironmentService> T getEnvironmentService(
+				Class<T> type) throws UnavailableServiceException {
+			for (EnvironmentService s : this.services) {
+				if (type.isInstance(s)) {
+					return (T) s;
+				}
+			}
+			throw new UnavailableServiceException(type);
+		}
+
 	}
 }

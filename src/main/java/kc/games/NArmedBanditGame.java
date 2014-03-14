@@ -19,6 +19,7 @@ import org.uncommons.maths.random.SeedException;
 import org.uncommons.maths.random.SeedGenerator;
 import org.uncommons.maths.random.XORShiftRNG;
 
+import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
@@ -44,11 +45,12 @@ public class NArmedBanditGame extends Game {
 
 	@Inject
 	public NArmedBanditGame(EnvironmentSharedStateAccess sharedState,
+			EnvironmentServiceProvider serviceProvider,
 			@Named("params.numStrategies") int numStrat,
 			@Named("params.stratVariability") double var,
 			@Named("params.stratVolatility") double vol,
 			@Named("params.seed") int seed) throws SeedException {
-		super(sharedState);
+		super(sharedState, serviceProvider);
 		this.strategies = new ArrayList<Strategy>();
 		this.bandits = new Vector<NumberGenerator<Double>>();
 		this.banditMeans = new Vector<AdjustableNumberGenerator<Double>>();

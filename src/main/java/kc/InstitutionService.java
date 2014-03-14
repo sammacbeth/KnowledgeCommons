@@ -11,7 +11,9 @@ import uk.ac.imperial.einst.Module;
 import uk.ac.imperial.einst.UnavailableModuleException;
 import uk.ac.imperial.einst.access.AccessControl;
 import uk.ac.imperial.einst.ipower.IPower;
+import uk.ac.imperial.einst.micropay.MicroPayments;
 import uk.ac.imperial.einst.resource.ProvisionAppropriationSystem;
+import uk.ac.imperial.einst.resource.facility.Facilities;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.plugin.Plugin;
@@ -25,6 +27,7 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 	int t = 0;
 	EInstSession session;
 	IPower ipower;
+	MicroPayments payments;
 
 	KCStorage sto;
 
@@ -39,8 +42,11 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 		modules.add(AccessControl.class);
 		modules.add(IPower.class);
 		modules.add(ProvisionAppropriationSystem.class);
+		modules.add(MicroPayments.class);
+		modules.add(Facilities.class);
 		this.session = new EInstSession(modules);
 		this.ipower = this.session.getModule(IPower.class);
+		this.payments = this.session.getModule(MicroPayments.class);
 	}
 
 	@Inject(optional = true)

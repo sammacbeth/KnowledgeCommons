@@ -14,13 +14,17 @@ import kc.util.MultiUserQueue;
 
 import org.apache.log4j.Logger;
 
+import uk.ac.imperial.einst.micropay.Account;
+import uk.ac.imperial.einst.micropay.MicroPayments;
 import uk.ac.imperial.presage2.core.Action;
 import uk.ac.imperial.presage2.core.environment.ActionHandler;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
+import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.StateTransformer;
+import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventBus;
 import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
@@ -31,19 +35,37 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 
 	protected final Logger logger = Logger.getLogger(Game.class);
 	Map<UUID, String> names = new HashMap<UUID, String>();
+	Map<UUID, Account> accounts = new HashMap<UUID, Account>();
 	Map<UUID, MultiUserQueue<Measured>> measured = Collections
 			.synchronizedMap(new HashMap<UUID, MultiUserQueue<Measured>>());
+
+	final EnvironmentServiceProvider serviceProvider;
+	MicroPayments accounting = null;
 
 	protected KCStorage sto = null;
 
 	@Inject
-	public Game(EnvironmentSharedStateAccess sharedState) {
+	public Game(EnvironmentSharedStateAccess sharedState,
+			EnvironmentServiceProvider serviceProvider) {
 		super(sharedState);
+		this.serviceProvider = serviceProvider;
 	}
 
 	@Inject(optional = true)
 	public void setDb(KCStorage sto) {
 		this.sto = sto;
+	}
+
+	public MicroPayments accounting() {
+		if (accounting == null) {
+			try {
+				this.accounting = this.serviceProvider
+						.getEnvironmentService(InstitutionService.class).payments;
+			} catch (UnavailableServiceException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return accounting;
 	}
 
 	@Override
@@ -54,10 +76,15 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 	@Override
 	public void registerParticipant(EnvironmentRegistrationRequest req) {
 		super.registerParticipant(req);
+		Account a = accounting().getAccount(req.getParticipant());
+		if (a == null) {
+			a = accounting().createAccount(req.getParticipant(), 0, 0);
+		}
 		sharedState.create("account", req.getParticipantID(), new Double(0));
 		sharedState.create("measured", req.getParticipantID(),
 				new LinkedList<Measured>());
 		names.put(req.getParticipantID(), req.getParticipant().getName());
+		accounts.put(req.getParticipantID(), a);
 	}
 
 	@Override
@@ -71,16 +98,20 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 			this.sharedState.change("account", actor, new StateTransformer() {
 				@Override
 				public Serializable transform(Serializable state) {
+					// drools way
+					Account a = accounts.get(actor);
+					a.setBalance(a.getBalance() + u);
+
+					// sharedstate way
 					double account = (Double) state;
 					if (Double.isNaN(account)) {
 						logger.warn(account);
 					} else {
 						account += u;
-
-						if (sto != null) {
-							sto.insertPlayerGameRound(time, names.get(actor),
-									s.getId(), u, account);
-						}
+					}
+					if (sto != null) {
+						sto.insertPlayerGameRound(time, names.get(actor),
+								s.getId(), u, a.getBalance());
 					}
 					return account;
 				}

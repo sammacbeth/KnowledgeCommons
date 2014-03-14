@@ -4,14 +4,18 @@ import java.util.HashSet;
 import java.util.Set;
 
 import kc.agents.AbstractAgent;
+import kc.agents.NonPlayerAgent;
 import kc.agents.PlayerAgent;
 import kc.prediction.GreedyPredictor;
+import kc.prediction.Predictor;
 import kc.prediction.RandomPredictor;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.access.RoleOf;
+import uk.ac.imperial.einst.micropay.Account;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
+import uk.ac.imperial.einst.resource.facility.Facility;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventBus;
@@ -98,12 +102,49 @@ public class GameSimulation extends InjectedSimulation {
 		this.session.LOG_WM = true;
 		s.addPlugin(this.inst);
 
-		banditExprSetup(s);
+		// banditExprSetup(s);
+		Set<String> gatherer = new HashSet<String>();
+		gatherer.add("gatherer");
+		Set<String> consumer = new HashSet<String>();
+		consumer.add("consumer");
+		Set<String> analyst = new HashSet<String>();
+		analyst.add("analyst");
+
+		Institution i = new DataInstitution("i1");
+		// measured pool
+		Set<Pool> pools = new HashSet<Pool>();
+		pools.add(new Pool(i, gatherer, analyst, new ArtifactTypeMatcher(
+				Measured.class)));
+		pools.add(new Pool(i, analyst, consumer, new ArtifactTypeMatcher(
+				Predictor.class)));
+		for (Pool p : pools) {
+			session.insert(p);
+		}
+		session.insert(new Facility(i, pools, 10, 1, 0.01));
+		session.insert(new Account(i, 0));
+
+		for (int n = 0; n < 2; n++) {
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n);
+			addAgent(s, ag, 0, i, "gatherer", "consumer");
+		}
+
+		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
+				new GreedyPredictor(0.5, 0.1, 0.1));
+		addAgent(s, ag, 100, i, "analyst");
 	}
 
 	@EventListener
 	public void incrementTime(EndOfTimeCycle e) {
 		session.incrementTime();
+	}
+
+	void addAgent(Scenario s, AbstractAgent ag, double borrowLimit,
+			Institution initialInst, String... roles) {
+		s.addParticipant(ag);
+		session.insert(new Account(ag, 0, borrowLimit));
+		for (String role : roles) {
+			session.insert(new RoleOf(ag, initialInst, role));
+		}
 	}
 
 	void banditExprSetup(Scenario s) {
