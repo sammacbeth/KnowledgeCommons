@@ -1,0 +1,37 @@
+import uk.ac.imperial.einst.Institution
+import uk.ac.imperial.einst.access.RoleOf
+import uk.ac.imperial.einst.micropay.Account
+import uk.ac.imperial.einst.resource.facility.Facility
+
+global org.apache.log4j.Logger logger
+
+declare Bankrupt
+	inst : Institution
+end
+
+rule "Institution Bankruptcy"
+	when
+		Account(balance < minValue, $i : holder, holder instanceof Institution)
+	then
+		logger.info($i +" is bankrupt!");
+		insert( new Bankrupt((Institution) $i));
+end
+
+rule "Revoke roles on bankruptcy"
+	when
+		Bankrupt($i : inst)
+		$r : RoleOf(inst == $i)
+	then
+		retract($r);
+end
+
+rule "Disable facilities"
+	when
+		Bankrupt($i : inst)
+		$f : Facility(inst == $i, active == true)
+	then
+		modify($f) {
+			setActive(false);
+		}
+end
+

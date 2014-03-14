@@ -44,6 +44,7 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 		modules.add(ProvisionAppropriationSystem.class);
 		modules.add(MicroPayments.class);
 		modules.add(Facilities.class);
+		modules.add(KnowledgeCommons.class);
 		this.session = new EInstSession(modules);
 		this.ipower = this.session.getModule(IPower.class);
 		this.payments = this.session.getModule(MicroPayments.class);

@@ -1,8 +1,10 @@
 package kc.agents;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
@@ -147,14 +149,14 @@ public class PlayerAgent extends AbstractAgent {
 				logger.info("Chosen Predictor is: " + this.predictor
 						+ " with score: " + strategy.getLastScore());
 			}
-			
+
 			if (last != null) {
 				double account = game.getScore(getID());
 				strategy.addTrainingData(new Measured(null, State.NONE, current
 						.getId(), account - prevAccount, 0));
 				prevAccount = account;
 			}
-			
+
 			last = current;
 			super.doBehaviour();
 		}
@@ -215,7 +217,7 @@ public class PlayerAgent extends AbstractAgent {
 			implements AppropriationsListener {
 
 		ProvisionAppropriationSystem sys;
-		Set<Predictor> appropriated = new HashSet<Predictor>();
+		Map<Institution, Set<Predictor>> sources = new HashMap<Institution, Set<Predictor>>();
 
 		public AppropriatePredictorBehaviour() {
 			super(new Appropriate(PlayerAgent.this, null, Predictor.class));
@@ -236,18 +238,32 @@ public class PlayerAgent extends AbstractAgent {
 		@Override
 		public void doBehaviour() {
 			super.doBehaviour();
-			for (Institution i : institutions) {
-				inst.act(new Request(PlayerAgent.this, i,
-						new ArtifactTypeMatcher(Predictor.class), 5));
+			for (Institution i : sources.keySet()) {
+				if (!institutions.contains(i)) {
+					// no longer access to this inst, we cannot use these
+					// predictors anymore
+					for (Predictor p : sources.get(i)) {
+						sendEvent("removePredictor", p);
+					}
+					sources.remove(i);
+				} else {
+					inst.act(new Request(PlayerAgent.this, i,
+							new ArtifactTypeMatcher(Predictor.class), 5));
+				}
 			}
 		}
 
 		@Override
 		public void onAppropriation(Object artifact, Institution from) {
 			if (artifact instanceof Predictor
-					&& !appropriated.contains(artifact)) {
-				Predictor p = (Predictor) artifact;
-				sendEvent("newPredictor", new SlavePredictor(p, from));
+					&& (!sources.containsKey(from) || !sources.get(from)
+							.contains(artifact))) {
+				Predictor p = new SlavePredictor((Predictor) artifact, from);
+				sendEvent("newPredictor", p);
+				if (!sources.containsKey(from)) {
+					sources.put(from, new HashSet<Predictor>());
+				}
+				sources.get(from).add(p);
 			}
 		}
 

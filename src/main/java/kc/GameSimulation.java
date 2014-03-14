@@ -121,7 +121,7 @@ public class GameSimulation extends InjectedSimulation {
 			session.insert(p);
 		}
 		session.insert(new Facility(i, pools, 10, 1, 0.01));
-		session.insert(new Account(i, 0));
+		session.insert(new Account(i, 0, 100));
 
 		for (int n = 0; n < 2; n++) {
 			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n);
