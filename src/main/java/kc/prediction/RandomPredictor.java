@@ -6,7 +6,7 @@ import kc.Measured;
 import kc.State;
 import kc.Strategy;
 
-public class RandomPredictor extends Predictor {
+public class RandomPredictor extends AbstractPredictor {
 
 	public RandomPredictor() {
 		super();

@@ -11,7 +11,7 @@ import kc.Strategy;
 import org.apache.commons.lang3.tuple.Pair;
 import org.uncommons.maths.Maths;
 
-public abstract class ReinforcementPredictor extends Predictor {
+public abstract class ReinforcementPredictor extends AbstractPredictor {
 
 	boolean log = false;
 	final double q0;

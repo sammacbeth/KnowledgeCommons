@@ -13,7 +13,7 @@ import kc.State;
 import kc.Strategy;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.Predictor;
-import kc.prediction.RandomPredictor;
+import kc.prediction.PseudoPredictor;
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.UnavailableModuleException;
 import uk.ac.imperial.einst.ipower.IPower;
@@ -70,7 +70,7 @@ public class PlayerAgent extends AbstractAgent {
 	public static PlayerAgent dumbPlayer(String name) {
 		PlayerAgent a = new PlayerAgent(name);
 		a.addBehaviour(a.new MultiPredictorGameplayBehaviour(
-				new RandomPredictor()));
+				new PseudoPredictor(name, 0.5)));
 		a.addBehaviour(a.new AppropriatePredictorBehaviour());
 		a.addBehaviour(a.new ProvisionMeasuredBehaviour());
 		a.addBehaviour(a.new AppropriateMeasuredBehaviour());
@@ -118,7 +118,7 @@ public class PlayerAgent extends AbstractAgent {
 
 		double prevAccount = 0;
 
-		final int strategyEvalPeriod = 2;
+		final int strategyEvalPeriod = 5;
 		Strategy current = null;
 		Strategy last = null;
 		int strategyDuration = 0;
@@ -146,8 +146,7 @@ public class PlayerAgent extends AbstractAgent {
 				current = strategy.actionSelection(State.NONE, getStrategies());
 				this.predictor = options.get(current.getId());
 				strategyDuration = strategyEvalPeriod;
-				logger.info("Chosen Predictor is: " + this.predictor
-						+ " with score: " + strategy.getLastScore());
+				logger.info("Chosen Predictor is: " + this.predictor);
 			}
 
 			if (last != null) {
@@ -202,8 +201,6 @@ public class PlayerAgent extends AbstractAgent {
 				for (Institution i : institutions) {
 					inst.act(new Provision(PlayerAgent.this, i, m));
 				}
-				// save this measured
-				measured.publish(m);
 			}
 		}
 
@@ -238,6 +235,10 @@ public class PlayerAgent extends AbstractAgent {
 		@Override
 		public void doBehaviour() {
 			super.doBehaviour();
+			for (Institution i : institutions) {
+				if (!sources.containsKey(i))
+					sources.put(i, new HashSet<Predictor>());
+			}
 			for (Institution i : sources.keySet()) {
 				if (!institutions.contains(i)) {
 					// no longer access to this inst, we cannot use these
@@ -273,7 +274,7 @@ public class PlayerAgent extends AbstractAgent {
 
 	}
 
-	class SlavePredictor extends Predictor {
+	class SlavePredictor implements Predictor {
 
 		final Predictor delegate;
 		final Institution source;
@@ -298,11 +299,6 @@ public class PlayerAgent extends AbstractAgent {
 		@Override
 		public String toString() {
 			return "" + delegate + " from " + source + "";
-		}
-
-		@Override
-		public double getLastScore() {
-			return delegate.getLastScore();
 		}
 
 	}

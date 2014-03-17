@@ -8,6 +8,7 @@ import kc.agents.NonPlayerAgent;
 import kc.agents.PlayerAgent;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.Predictor;
+import kc.prediction.PseudoPredictor;
 import kc.prediction.RandomPredictor;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
@@ -32,8 +33,8 @@ import com.google.inject.Inject;
 
 public class GameSimulation extends InjectedSimulation {
 
-	@Parameter(name = "numStrategies")
-	public static int numStrategies;
+	@Parameter(name = "numStrategies", optional = true)
+	public static int numStrategies = 2;
 	@Parameter(name = "gameClass")
 	public String gameClass;
 	@Parameter(name = "gathererLimit", optional = true)
@@ -99,7 +100,7 @@ public class GameSimulation extends InjectedSimulation {
 
 	@Override
 	protected void addToScenario(Scenario s) {
-		this.session.LOG_WM = true;
+		this.session.LOG_WM = false;
 		s.addPlugin(this.inst);
 
 		// banditExprSetup(s);
@@ -120,7 +121,7 @@ public class GameSimulation extends InjectedSimulation {
 		for (Pool p : pools) {
 			session.insert(p);
 		}
-		session.insert(new Facility(i, pools, 10, 1, 0.01));
+		session.insert(new Facility(i, pools, 0, 0, 0.0));
 		session.insert(new Account(i, 0, 100));
 
 		for (int n = 0; n < 2; n++) {
@@ -129,8 +130,11 @@ public class GameSimulation extends InjectedSimulation {
 		}
 
 		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
-				new GreedyPredictor(0.5, 0.1, 0.1));
+				new PseudoPredictor("a1"));
 		addAgent(s, ag, 100, i, "analyst");
+		
+		ag = PlayerAgent.knowledgePlayer("c1", new PseudoPredictor("c1"));
+		addAgent(s, ag, 0, i, "gatherer");
 	}
 
 	@EventListener

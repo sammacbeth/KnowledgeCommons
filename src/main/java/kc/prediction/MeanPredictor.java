@@ -12,7 +12,7 @@ import kc.Strategy;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 
-public class MeanPredictor extends Predictor {
+public class MeanPredictor extends AbstractPredictor {
 
 	Set<Measured> data = new HashSet<Measured>();
 
