@@ -140,6 +140,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 
 		ProvisionAppropriationSystem sys;
 		int lastRequest = -1;
+		int appropriateLim = 100;
 
 		public AppropriateMeasuredBehaviour() {
 			super(new Appropriate(AbstractAgent.this, null, new Measured()));
@@ -162,7 +163,8 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 			super.doBehaviour();
 			for (Institution i : institutions) {
 				inst.act(new Request(AbstractAgent.this, i,
-						new MeasuredMatcher().setNewerThan(lastRequest), 10));
+						new MeasuredMatcher().setNewerThan(lastRequest),
+						appropriateLim));
 			}
 		}
 

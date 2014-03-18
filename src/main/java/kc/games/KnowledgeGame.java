@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
@@ -17,10 +18,14 @@ import kc.prediction.PseudoPredictor;
 @Singleton
 public class KnowledgeGame extends Game {
 
+	double qscale = 0.02;
+
 	@Inject
 	public KnowledgeGame(EnvironmentSharedStateAccess sharedState,
-			EnvironmentServiceProvider serviceProvider) {
+			EnvironmentServiceProvider serviceProvider,
+			@Named("params.qscale") double qscale) {
 		super(sharedState, serviceProvider);
+		this.qscale = qscale;
 	}
 
 	@Override
@@ -43,7 +48,7 @@ public class KnowledgeGame extends Game {
 	}
 
 	double fn(int n, double e) {
-		return (1.0 - (1.0 / (n/50.0 + 1.0))) * e;
+		return (1.0 - (1.0 / (n * qscale + 1.0))) * e;
 	}
 
 }

@@ -1,6 +1,10 @@
+import kc.DataInstitution
+
 import uk.ac.imperial.einst.Institution
 import uk.ac.imperial.einst.access.RoleOf
+import uk.ac.imperial.einst.ipower.Obl
 import uk.ac.imperial.einst.micropay.Account
+import uk.ac.imperial.einst.micropay.Transfer
 import uk.ac.imperial.einst.resource.facility.Facility
 
 global org.apache.log4j.Logger logger
@@ -10,10 +14,11 @@ declare Bankrupt
 end
 
 rule "Institution Bankruptcy"
+	salience -100
 	when
-		Account(balance < minValue, $i : holder, holder instanceof Institution)
+		$acc : Account(balance < minValue, $i : holder, holder instanceof Institution)
 	then
-		logger.info($i +" is bankrupt!");
+		logger.info($acc +" is bankrupt!");
 		insert( new Bankrupt((Institution) $i));
 end
 
@@ -35,3 +40,20 @@ rule "Disable facilities"
 		}
 end
 
+rule "Pay institution Costs"
+	salience -10
+	when
+		$i : DataInstitution($r : payRole)
+		$acc : Account(holder == $i, balance < 0, $bal : balance)
+		accumulate( 
+			RoleOf(inst == $i, role == $r, $a : actor); 
+			$payers : collectSet($a);
+			$payers.size() > 0)
+	then
+		logger.info($acc);
+		double balanceDue = -1 * $bal / $payers.size();
+		for(Object o : $payers) {
+			Actor a = (Actor) o;
+			insert( new Obl(a, new Transfer(a, $i, $i, balanceDue) ));
+		}
+end

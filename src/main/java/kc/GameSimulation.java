@@ -45,6 +45,8 @@ public class GameSimulation extends InjectedSimulation {
 	public static double stratVariability = 0.01;
 	@Parameter(name = "seed")
 	public static int seed = 1;
+	@Parameter(name = "qscale")
+	public double qscale = 0.02;
 
 	public int iaCount = 10;
 	public int raCount = 5;
@@ -121,20 +123,22 @@ public class GameSimulation extends InjectedSimulation {
 		for (Pool p : pools) {
 			session.insert(p);
 		}
-		session.insert(new Facility(i, pools, 0, 0, 0.0));
+		session.insert(new Facility(i, pools, 0, 0, 0.01));
+		session.insert(i);
 		session.insert(new Account(i, 0, 100));
 
-		for (int n = 0; n < 2; n++) {
+		for (int n = 0; n < gathererLimit; n++) {
 			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n);
-			addAgent(s, ag, 0, i, "gatherer", "consumer");
+			addAgent(s, ag, 0, i, "gatherer", "consumer", "initiator");
 		}
 
 		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
 				new PseudoPredictor("a1"));
-		addAgent(s, ag, 100, i, "analyst");
-		
-		ag = PlayerAgent.knowledgePlayer("c1", new PseudoPredictor("c1"));
-		addAgent(s, ag, 0, i, "gatherer");
+		addAgent(s, ag, 20, i, "analyst");
+
+		addAgent(s,
+				PlayerAgent.knowledgePlayer("ind", new PseudoPredictor("ind")),
+				0, null);
 	}
 
 	@EventListener

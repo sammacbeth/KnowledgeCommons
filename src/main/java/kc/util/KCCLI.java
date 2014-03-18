@@ -37,6 +37,7 @@ public class KCCLI extends Presage2CLI {
 
 		Map<String, String> experiments = new HashMap<String, String>();
 		experiments.put("bandits", "Get properties of the bandit game.");
+		experiments.put("pseudo", "Get properties of the pseudo game.");
 
 		OptionGroup exprOptions = new OptionGroup();
 		for (String key : experiments.keySet()) {
@@ -92,6 +93,8 @@ public class KCCLI extends Presage2CLI {
 
 		if (args[1].equalsIgnoreCase("bandits")) {
 			bandits(repeats, seed);
+		} else if (args[1].equalsIgnoreCase("pseudo")) {
+			pseudo(repeats, seed);
 		}
 
 		stopDatabase();
@@ -124,6 +127,22 @@ public class KCCLI extends Presage2CLI {
 
 		while (bandits.hasNext()) {
 			PersistentSimulation sim = bandits.next().insert(getDatabase());
+			logger.info("Created sim: " + sim.getID() + " - " + sim.getName());
+		}
+	}
+
+	private void pseudo(int repeats, int seed)
+			throws InvalidParametersException {
+		Experiment pseudo = new Experiment("pseudo",
+				"ps:%{p.gathererLimit}:%{p.qscale}", "kc.GameSimulation", 100);
+		pseudo.addFixedParameter("gameClass", "kc.games.KnowledgeGame");
+		pseudo.addRangeParameter("gathererLimit", 1, 50, 1);
+		pseudo.addArrayParameter("qscale", 0.02, 0.01, 0.005);
+		pseudo.addRangeParameter("seed", seed, repeats, 1);
+		pseudo.build();
+
+		while (pseudo.hasNext()) {
+			PersistentSimulation sim = pseudo.next().insert(getDatabase());
 			logger.info("Created sim: " + sim.getID() + " - " + sim.getName());
 		}
 	}

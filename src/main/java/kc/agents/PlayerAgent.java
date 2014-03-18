@@ -113,7 +113,8 @@ public class PlayerAgent extends AbstractAgent {
 
 	class MultiPredictorGameplayBehaviour extends GameplayBehaviour {
 
-		List<Predictor> options = new ArrayList<Predictor>();
+		Map<Integer, Predictor> options = new HashMap<Integer, Predictor>();
+		private int ind = 0;
 		Predictor strategy;
 
 		double prevAccount = 0;
@@ -124,13 +125,13 @@ public class PlayerAgent extends AbstractAgent {
 		int strategyDuration = 0;
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor) {
-			this(predictor, new GreedyPredictor(0.5, 0.5, 0.1));
+			this(predictor, new GreedyPredictor(0.5, 0.5, 0.0));
 		}
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor,
 				Predictor strategy) {
 			super(predictor);
-			this.options.add(predictor);
+			this.options.put(ind++, predictor);
 			this.strategy = strategy;
 		}
 
@@ -162,7 +163,7 @@ public class PlayerAgent extends AbstractAgent {
 
 		private List<Strategy> getStrategies() {
 			List<Strategy> s = new ArrayList<Strategy>();
-			for (int i = 0; i < options.size(); i++) {
+			for (Integer i : options.keySet()) {
 				s.add(new Strategy(i, measure));
 			}
 			return s;
@@ -170,8 +171,21 @@ public class PlayerAgent extends AbstractAgent {
 
 		@Override
 		public void onEvent(String type, Object value) {
-			if (type.equals("newPredictor")) {
-				options.add((Predictor) value);
+			if (type.equals("newPredictor") && !options.containsValue(value)) {
+				options.put(ind++, (Predictor) value);
+			} else if (type.equals("removePredictor")) {
+				Set<Integer> toRemove = new HashSet<Integer>();
+				for (Map.Entry<Integer, Predictor> e : options.entrySet()) {
+					if (e.getValue().equals(value)) {
+						toRemove.add(e.getKey());
+					}
+				}
+				for (int id : toRemove) {
+					options.remove(id);
+					if (current != null && current.getId() == id) {
+						current = null;
+					}
+				}
 			}
 		}
 
@@ -299,6 +313,46 @@ public class PlayerAgent extends AbstractAgent {
 		@Override
 		public String toString() {
 			return "" + delegate + " from " + source + "";
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result
+					+ ((delegate == null) ? 0 : delegate.hashCode());
+			result = prime * result
+					+ ((source == null) ? 0 : source.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			SlavePredictor other = (SlavePredictor) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (delegate == null) {
+				if (other.delegate != null)
+					return false;
+			} else if (!delegate.equals(other.delegate))
+				return false;
+			if (source == null) {
+				if (other.source != null)
+					return false;
+			} else if (!source.equals(other.source))
+				return false;
+			return true;
+		}
+
+		private PlayerAgent getOuterType() {
+			return PlayerAgent.this;
 		}
 
 	}

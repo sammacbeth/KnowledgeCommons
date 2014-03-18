@@ -102,6 +102,7 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 					Account a = accounts.get(actor);
 					a.setBalance(a.getBalance() + u);
 
+					logger.info(s +" got reward: "+ u +"; "+ a);
 					// sharedstate way
 					double account = (Double) state;
 					if (Double.isNaN(account)) {
