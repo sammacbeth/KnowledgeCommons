@@ -102,7 +102,7 @@ public class GameSimulation extends InjectedSimulation {
 
 	@Override
 	protected void addToScenario(Scenario s) {
-		this.session.LOG_WM = false;
+		this.session.LOG_WM = true;
 		s.addPlugin(this.inst);
 
 		// banditExprSetup(s);
@@ -123,7 +123,7 @@ public class GameSimulation extends InjectedSimulation {
 		for (Pool p : pools) {
 			session.insert(p);
 		}
-		session.insert(new Facility(i, pools, 0, 0, 0.01));
+		session.insert(new Facility(i, pools, 0, 0, 0.01, 0.01));
 		session.insert(i);
 		session.insert(new Account(i, 0, 100));
 
