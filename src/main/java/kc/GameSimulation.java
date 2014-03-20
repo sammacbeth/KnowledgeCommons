@@ -47,6 +47,14 @@ public class GameSimulation extends InjectedSimulation {
 	public static int seed = 1;
 	@Parameter(name = "qscale")
 	public double qscale = 0.02;
+	@Parameter(name = "facilitySunk")
+	public double facilitySunk = 0.0;
+	@Parameter(name = "facilityFixed")
+	public double facilityFixed = 0.0;
+	@Parameter(name = "facilityMarginalStorage")
+	public double facilityMarginalStorage = 0.0;
+	@Parameter(name = "facilityMarginalTrans")
+	public double facilityMarginalTrans = 0.0;
 
 	public int iaCount = 10;
 	public int raCount = 5;
@@ -102,7 +110,7 @@ public class GameSimulation extends InjectedSimulation {
 
 	@Override
 	protected void addToScenario(Scenario s) {
-		this.session.LOG_WM = true;
+		this.session.LOG_WM = false;
 		s.addPlugin(this.inst);
 
 		// banditExprSetup(s);
@@ -123,7 +131,8 @@ public class GameSimulation extends InjectedSimulation {
 		for (Pool p : pools) {
 			session.insert(p);
 		}
-		session.insert(new Facility(i, pools, 0, 0, 0.01, 0.01));
+		session.insert(new Facility(i, pools, facilitySunk, facilityFixed,
+				facilityMarginalStorage, facilityMarginalTrans));
 		session.insert(i);
 		session.insert(new Account(i, 0, 100));
 

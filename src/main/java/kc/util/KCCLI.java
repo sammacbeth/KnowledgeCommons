@@ -15,6 +15,8 @@ import org.apache.log4j.Logger;
 
 import uk.ac.imperial.presage2.core.cli.Experiment;
 import uk.ac.imperial.presage2.core.cli.InvalidParametersException;
+import uk.ac.imperial.presage2.core.cli.MultiExperiment;
+import uk.ac.imperial.presage2.core.cli.ParameterSweep;
 import uk.ac.imperial.presage2.core.cli.Presage2CLI;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 
@@ -35,13 +37,18 @@ public class KCCLI extends Presage2CLI {
 	public void insert(String[] args) throws InvalidParametersException {
 		Options options = new Options();
 
-		Map<String, String> experiments = new HashMap<String, String>();
-		experiments.put("bandits", "Get properties of the bandit game.");
-		experiments.put("pseudo", "Get properties of the pseudo game.");
+		Map<String, Experiment> experiments = new HashMap<String, Experiment>();
+		addExperiment(experiments, bandits());
+		addExperiment(experiments, pseudo());
+		addExperiment(experiments, facilityCosts());
+		// Map<String, String> experiments = new HashMap<String, String>();
+		// experiments.put("bandits", "Get properties of the bandit game.");
+		// experiments.put("pseudo", "Get properties of the pseudo game.");
 
 		OptionGroup exprOptions = new OptionGroup();
-		for (String key : experiments.keySet()) {
-			exprOptions.addOption(new Option(key, experiments.get(key)));
+		for (Experiment expr : experiments.values()) {
+			exprOptions.addOption(new Option(expr.getName(), expr
+					.getDescription()));
 		}
 
 		// check for experiment type argument
@@ -91,19 +98,34 @@ public class KCCLI extends Presage2CLI {
 		} catch (NullPointerException e) {
 		}
 
-		if (args[1].equalsIgnoreCase("bandits")) {
-			bandits(repeats, seed);
-		} else if (args[1].equalsIgnoreCase("pseudo")) {
-			pseudo(repeats, seed);
+		Experiment expr = experiments.get(args[1]);
+
+		if (seed == 0)
+			seed = 1;
+		String[] seeds = new String[repeats];
+		for (int i = 0; i < seeds.length; i++) {
+			seeds[i] = Integer.toString(seed + i);
+		}
+		expr.addRangeParameter("seed", seed, repeats, 1);
+		expr.build();
+
+		while (expr.hasNext()) {
+			PersistentSimulation sim = expr.next().insert(getDatabase());
+			logger.info("Created sim: " + sim.getID() + " - " + sim.getName());
 		}
 
 		stopDatabase();
 	}
 
-	private void bandits(int repeats, int seed)
-			throws InvalidParametersException {
-		Experiment bandits = new Experiment(
+	static void addExperiment(Map<String, Experiment> experiments,
+			Experiment expr) {
+		experiments.put(expr.getName(), expr);
+	}
+
+	private Experiment bandits() throws InvalidParametersException {
+		Experiment bandits = new ParameterSweep(
 				"bandits",
+				"Get properties of the bandit game.",
 				"band:%{p.numStrategies}:%{p.stratVariability}:%{p.stratVolatility}:%{p.gathererLimit}",
 				"kc.GameSimulation", 100);
 		bandits.addArrayParameter("gameClass",
@@ -116,35 +138,53 @@ public class KCCLI extends Presage2CLI {
 		bandits.addArrayParameter("gathererLimit", new String[] { "2", "4",
 				"8", "16" });
 
-		if (seed == 0)
-			seed = 1;
-		String[] seeds = new String[repeats];
-		for (int i = 0; i < seeds.length; i++) {
-			seeds[i] = Integer.toString(seed + i);
-		}
-		bandits.addArrayParameter("seed", seeds);
-		bandits.build();
-
-		while (bandits.hasNext()) {
-			PersistentSimulation sim = bandits.next().insert(getDatabase());
-			logger.info("Created sim: " + sim.getID() + " - " + sim.getName());
-		}
+		return bandits;
 	}
 
-	private void pseudo(int repeats, int seed)
-			throws InvalidParametersException {
-		Experiment pseudo = new Experiment("pseudo",
+	private Experiment pseudo() throws InvalidParametersException {
+		Experiment pseudo = new ParameterSweep("pseudo",
+				"Get properties of the pseudo game.",
 				"ps:%{p.gathererLimit}:%{p.qscale}", "kc.GameSimulation", 100);
 		pseudo.addFixedParameter("gameClass", "kc.games.KnowledgeGame");
 		pseudo.addRangeParameter("gathererLimit", 1, 50, 1);
 		pseudo.addArrayParameter("qscale", 0.02, 0.01, 0.005);
-		pseudo.addRangeParameter("seed", seed, repeats, 1);
-		pseudo.build();
-
-		while (pseudo.hasNext()) {
-			PersistentSimulation sim = pseudo.next().insert(getDatabase());
-			logger.info("Created sim: " + sim.getID() + " - " + sim.getName());
-		}
+		return pseudo;
 	}
 
+	private Experiment facilityCosts() {
+		Experiment sunk = new ParameterSweep("sunk", "sunk:%{p.facilitySunk}",
+				"kc.GameSimulation", 100)
+				.addArrayParameter("facilitySunk", 0, 10, 90)
+				.addFixedParameter("facilityFixed", 0.0)
+				.addFixedParameter("facilityMarginalStorage", 0.0)
+				.addFixedParameter("facilityMarginalTrans", 0.0);
+
+		Experiment fixed = new ParameterSweep("fixed",
+				"fixed:%{p.facilityFixed}", "kc.GameSimulation", 100)
+				.addFixedParameter("facilitySunk", 0.0)
+				.addArrayParameter("facilityFixed", 1.0, 2.0, 4.0)
+				.addFixedParameter("facilityMarginalStorage", 0.0)
+				.addFixedParameter("facilityMarginalTrans", 0.0);
+
+		Experiment sto = new ParameterSweep("sto",
+				"sto:%{p.facilityMarginalStorage}", "kc.GameSimulation", 100)
+				.addFixedParameter("facilitySunk", 0.0)
+				.addFixedParameter("facilityFixed", 0.0)
+				.addArrayParameter("facilityMarginalStorage", 0.005, 0.01, 0.02)
+				.addFixedParameter("facilityMarginalTrans", 0.0);
+
+		Experiment trans = new ParameterSweep("trans",
+				"trans:%{p.facilityMarginalTrans}", "kc.GameSimulation", 100)
+				.addFixedParameter("facilitySunk", 0.0)
+				.addFixedParameter("facilityFixed", 0.0)
+				.addFixedParameter("facilityMarginalStorage", 0.0)
+				.addArrayParameter("facilityMarginalTrans", 0.01, 0.1, 1.0);
+
+		Experiment multi = new MultiExperiment("facilities", "", sunk, fixed,
+				sto, trans);
+		multi.addFixedParameter("gameClass", "kc.games.KnowledgeGame");
+		multi.addFixedParameter("qscale", 0.01);
+		multi.addFixedParameter("gathererLimit", 10);
+		return multi;
+	}
 }
