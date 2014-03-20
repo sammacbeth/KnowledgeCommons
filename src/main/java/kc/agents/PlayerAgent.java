@@ -13,7 +13,6 @@ import kc.State;
 import kc.Strategy;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.Predictor;
-import kc.prediction.PseudoPredictor;
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.UnavailableModuleException;
 import uk.ac.imperial.einst.ipower.IPower;
@@ -67,10 +66,9 @@ public class PlayerAgent extends AbstractAgent {
 	 * @param name
 	 * @return
 	 */
-	public static PlayerAgent dumbPlayer(String name) {
+	public static PlayerAgent dumbPlayer(String name, Predictor defaultPredictor) {
 		PlayerAgent a = new PlayerAgent(name);
-		a.addBehaviour(a.new MultiPredictorGameplayBehaviour(
-				new PseudoPredictor(name, 0.5)));
+		a.addBehaviour(a.new MultiPredictorGameplayBehaviour(defaultPredictor));
 		a.addBehaviour(a.new AppropriatePredictorBehaviour());
 		a.addBehaviour(a.new ProvisionMeasuredBehaviour());
 		a.addBehaviour(a.new AppropriateMeasuredBehaviour());

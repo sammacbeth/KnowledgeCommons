@@ -28,6 +28,7 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 	EInstSession session;
 	IPower ipower;
 	MicroPayments payments;
+	KnowledgeCommons kc;
 
 	KCStorage sto;
 
@@ -46,6 +47,21 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 		modules.add(Facilities.class);
 		modules.add(KnowledgeCommons.class);
 		this.session = new EInstSession(modules);
+		this.ipower = this.session.getModule(IPower.class);
+		this.payments = this.session.getModule(MicroPayments.class);
+		this.kc = this.session.getModule(KnowledgeCommons.class);
+	}
+
+	/**
+	 * Copy ctor for tests.
+	 * 
+	 * @param iService
+	 * @throws UnavailableModuleException
+	 */
+	InstitutionService(InstitutionService iService)
+			throws UnavailableModuleException {
+		super(iService.sharedState);
+		this.session = new EInstSession(iService.session);
 		this.ipower = this.session.getModule(IPower.class);
 		this.payments = this.session.getModule(MicroPayments.class);
 	}

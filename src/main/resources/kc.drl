@@ -1,4 +1,5 @@
 import kc.DataInstitution
+import kc.MeteredPool
 
 import uk.ac.imperial.einst.Institution
 import uk.ac.imperial.einst.access.RoleOf
@@ -11,6 +12,10 @@ global org.apache.log4j.Logger logger
 
 declare Bankrupt
 	inst : Institution
+end
+
+query isBankrupt(i)
+	Bankrupt(i;)
 end
 
 rule "Institution Bankruptcy"
@@ -57,3 +62,35 @@ rule "Pay institution Costs"
 			insert( new Obl(a, new Transfer(a, $i, $i, balanceDue) ));
 		}
 end
+
+declare FeeIssued
+	actor : Actor
+	source : Object
+	t : int
+end
+
+rule "Institution Subscription Fee"
+	when
+		RoleOf($a : actor, $i : inst, $r : role)
+		DataInstitution(this == $i, subscriptionFees.containsKey($r), $fees : subscriptionFees)
+		Action($t : t)
+		not( FeeIssued($a, $i, $t;) )
+	then
+		insert( new Obl($a, new Transfer($a, $i, $i, (Double) $fees.get($r)) ) );
+		insert( new FeeIssued($a, $i, $t) );
+end
+
+rule "Pool appropriation fee"
+	salience -10
+	when
+		RoleOf($a : actor, $i : inst, $r : role)
+		$p : MeteredPool(inst == $i, appropriationFees.containsKey($r), $matcher : artifactMatcher, $fees : appropriationFees)
+		Appropriate($t : t, actor == $a, inst == $i)
+		not( FeeIssued($a, $p, $t;) )
+		accumulate( Appropriate($item : artifact, actor == $a, inst == $i, t == $t, $matcher.matches($item));
+			$count : count($item); $count > 0)
+	then
+		insert( new Obl($a, new Transfer($a, $i, $i, ((Double) $fees.get($r)) * $count.doubleValue()) ) );
+		insert( new FeeIssued($a, $p, $t) );
+end
+

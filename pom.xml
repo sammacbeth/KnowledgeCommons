@@ -24,6 +24,13 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>uk.ac.imperial</groupId>
+			<artifactId>drools-einst</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest-all</artifactId>
 			<version>1.3</version>
