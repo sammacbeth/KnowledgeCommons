@@ -26,8 +26,12 @@ import uk.ac.imperial.einst.ipower.ObligationReactive;
 import uk.ac.imperial.einst.ipower.PowerReactive;
 import uk.ac.imperial.einst.resource.Appropriate;
 import uk.ac.imperial.einst.resource.AppropriationsListener;
+import uk.ac.imperial.einst.resource.ArtifactMatcher;
+import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Provision;
 import uk.ac.imperial.einst.resource.ProvisionAppropriationSystem;
+import uk.ac.imperial.einst.resource.Prune;
+import uk.ac.imperial.einst.resource.Remove;
 import uk.ac.imperial.einst.resource.Request;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.messaging.Input;
@@ -131,6 +135,10 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 			// rebuild list
 			institutions.clear();
 			checkInstitutions = true;
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
 		}
 
 	}
@@ -278,6 +286,29 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		@Override
 		public void onEvent(String type, Object value) {
 		}
+	}
+
+	class PruneMeasuredBehaviour extends PowerReactiveBehaviour {
+
+		ArtifactMatcher matcher = new ArtifactTypeMatcher(Measured.class);
+		int pruneBefore = 5;
+
+		public PruneMeasuredBehaviour() {
+			super(new Remove(AbstractAgent.this, null, Measured.class));
+		}
+
+		@Override
+		public void doBehaviour() {
+			super.doBehaviour();
+			final int t = getTime().intValue();
+			if (t > pruneBefore) {
+				for (Institution i : this.institutions) {
+					inst.act(new Prune(AbstractAgent.this, i, matcher, t
+							- pruneBefore, 0));
+				}
+			}
+		}
+
 	}
 
 }

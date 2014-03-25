@@ -15,6 +15,7 @@ public class NonPlayerAgent extends AbstractAgent {
 		a.addBehaviour(a.new ProvisionPredictorBehaviour(predictor));
 		a.addBehaviour(a.new TrainPredictorBehaviour(predictor));
 		a.addBehaviour(a.new InstitutionalBehaviour());
+		a.addBehaviour(a.new PruneMeasuredBehaviour());
 		return a;
 	}
 

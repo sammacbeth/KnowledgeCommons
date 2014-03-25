@@ -8,6 +8,7 @@ import kc.agents.NonPlayerAgent;
 import kc.agents.PlayerAgent;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.Predictor;
+import kc.prediction.PseudoPredictor;
 import kc.prediction.RandomPredictor;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
@@ -15,7 +16,6 @@ import uk.ac.imperial.einst.access.RoleOf;
 import uk.ac.imperial.einst.micropay.Account;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
-import uk.ac.imperial.einst.resource.facility.Facility;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventBus;
@@ -113,44 +113,25 @@ public class GameSimulation extends InjectedSimulation {
 		s.addPlugin(this.inst);
 
 		// banditExprSetup(s);
-		Set<String> gatherer = RoleOf.roleSet("gatherer");
-		Set<String> consumer = RoleOf.roleSet("consumer");
-		Set<String> analyst = RoleOf.roleSet("analyst");
-		Set<String> initiator = RoleOf.roleSet("initiator");
-
-		DataInstitution i = new DataInstitution("i1", 100);
-		// i.getSubscriptionFees().put("consumer", 0.1);
-		// measured pool
-		Set<Pool> pools = new HashSet<Pool>();
-		MeteredPool p1 = new MeteredPool(i, gatherer, analyst, initiator,
-				new ArtifactTypeMatcher(Measured.class));
-		MeteredPool p2 = new MeteredPool(i, analyst, consumer, initiator,
-				new ArtifactTypeMatcher(Predictor.class));
-		p2.getAppropriationFees().put("consumer", 0.05);
-		pools.add(p1);
-		pools.add(p2);
-		for (Pool p : pools) {
-			session.insert(p);
-		}
-		session.insert(new Facility(i, pools, facilitySunk, facilityFixed,
-				facilityMarginalStorage, facilityMarginalTrans));
-		session.insert(i);
-		session.insert(i.getAccount());
+		Institution i = new InstitutionBuilder(session, "i1", 100)
+				.addMeasuredPool(0)
+				.addPredictorPool(0)
+				.addFacility(facilitySunk, facilityFixed,
+						facilityMarginalStorage, facilityMarginalTrans).build();
 
 		for (int n = 0; n < gathererLimit; n++) {
-			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n,
-					new RandomPredictor());
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor());
 			addAgent(s, ag, 0, i, "gatherer", "consumer");
 		}
 
 		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
-				new GreedyPredictor(0.5, 0.1, 0.01));
+				goodPredictor("a1"));
 		addAgent(s, ag, 20, i, "analyst", "initiator");
 
-		addAgent(s, PlayerAgent.knowledgePlayer("ind", new GreedyPredictor(0.5,
-				0.1, 0.1)), 0, null);
-		addAgent(s, PlayerAgent.knowledgePlayer("rand", new RandomPredictor()),
+		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
 				0, null);
+		addAgent(s, PlayerAgent.knowledgePlayer("rand", badPredictor()), 0,
+				null);
 	}
 
 	@EventListener
@@ -197,6 +178,18 @@ public class GameSimulation extends InjectedSimulation {
 				}
 			}
 		}
+	}
+
+	Predictor badPredictor() {
+		if (gameClass.equals("kc.games.KnowledgeGame"))
+			return new PseudoPredictor();
+		return new RandomPredictor();
+	}
+
+	Predictor goodPredictor(String name) {
+		if (gameClass.equals("kc.games.KnowledgeGame"))
+			return new PseudoPredictor(name);
+		return new GreedyPredictor(0.5, 0.1, 0.1);
 	}
 
 }
