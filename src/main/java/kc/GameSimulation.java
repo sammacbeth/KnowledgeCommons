@@ -8,7 +8,6 @@ import kc.agents.NonPlayerAgent;
 import kc.agents.PlayerAgent;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.Predictor;
-import kc.prediction.PseudoPredictor;
 import kc.prediction.RandomPredictor;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
@@ -45,7 +44,7 @@ public class GameSimulation extends InjectedSimulation {
 	public static double stratVariability = 0.01;
 	@Parameter(name = "seed")
 	public static int seed = 1;
-	@Parameter(name = "qscale")
+	@Parameter(name = "qscale", optional = true)
 	public double qscale = 0.02;
 	@Parameter(name = "facilitySunk")
 	public double facilitySunk = 0.0;
@@ -110,43 +109,47 @@ public class GameSimulation extends InjectedSimulation {
 
 	@Override
 	protected void addToScenario(Scenario s) {
-		this.session.LOG_WM = false;
+		this.session.LOG_WM = true;
 		s.addPlugin(this.inst);
 
 		// banditExprSetup(s);
-		Set<String> gatherer = new HashSet<String>();
-		gatherer.add("gatherer");
-		Set<String> consumer = new HashSet<String>();
-		consumer.add("consumer");
-		Set<String> analyst = new HashSet<String>();
-		analyst.add("analyst");
+		Set<String> gatherer = RoleOf.roleSet("gatherer");
+		Set<String> consumer = RoleOf.roleSet("consumer");
+		Set<String> analyst = RoleOf.roleSet("analyst");
+		Set<String> initiator = RoleOf.roleSet("initiator");
 
-		Institution i = new DataInstitution("i1");
+		DataInstitution i = new DataInstitution("i1", 100);
+		// i.getSubscriptionFees().put("consumer", 0.1);
 		// measured pool
 		Set<Pool> pools = new HashSet<Pool>();
-		pools.add(new Pool(i, gatherer, analyst, new ArtifactTypeMatcher(
-				Measured.class)));
-		pools.add(new Pool(i, analyst, consumer, new ArtifactTypeMatcher(
-				Predictor.class)));
+		MeteredPool p1 = new MeteredPool(i, gatherer, analyst, initiator,
+				new ArtifactTypeMatcher(Measured.class));
+		MeteredPool p2 = new MeteredPool(i, analyst, consumer, initiator,
+				new ArtifactTypeMatcher(Predictor.class));
+		p2.getAppropriationFees().put("consumer", 0.05);
+		pools.add(p1);
+		pools.add(p2);
 		for (Pool p : pools) {
 			session.insert(p);
 		}
 		session.insert(new Facility(i, pools, facilitySunk, facilityFixed,
 				facilityMarginalStorage, facilityMarginalTrans));
 		session.insert(i);
-		session.insert(new Account(i, 0, 100));
+		session.insert(i.getAccount());
 
 		for (int n = 0; n < gathererLimit; n++) {
-			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n);
-			addAgent(s, ag, 0, i, "gatherer", "consumer", "initiator");
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n,
+					new RandomPredictor());
+			addAgent(s, ag, 0, i, "gatherer", "consumer");
 		}
 
 		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
-				new PseudoPredictor("a1"));
-		addAgent(s, ag, 20, i, "analyst");
+				new GreedyPredictor(0.5, 0.1, 0.01));
+		addAgent(s, ag, 20, i, "analyst", "initiator");
 
-		addAgent(s,
-				PlayerAgent.knowledgePlayer("ind", new PseudoPredictor("ind")),
+		addAgent(s, PlayerAgent.knowledgePlayer("ind", new GreedyPredictor(0.5,
+				0.1, 0.1)), 0, null);
+		addAgent(s, PlayerAgent.knowledgePlayer("rand", new RandomPredictor()),
 				0, null);
 	}
 
@@ -165,13 +168,11 @@ public class GameSimulation extends InjectedSimulation {
 	}
 
 	void banditExprSetup(Scenario s) {
-		Set<String> contribRole = new HashSet<String>();
-		contribRole.add("gatherer");
-		Set<String> extractRole = new HashSet<String>();
-		extractRole.add("consumer");
-		Institution i = new DataInstitution("i1");
-		Pool p = new Pool(i, contribRole, extractRole, new ArtifactTypeMatcher(
-				Measured.class));
+		Set<String> contribRole = RoleOf.roleSet("gatherer");
+		Set<String> extractRole = RoleOf.roleSet("consumer");
+		Institution i = new DataInstitution("i1", 0);
+		Pool p = new Pool(i, contribRole, extractRole, RoleOf.roleSet(),
+				new ArtifactTypeMatcher(Measured.class));
 		session.insert(p);
 
 		for (int n = 0; n < gathererLimit; n++) {
