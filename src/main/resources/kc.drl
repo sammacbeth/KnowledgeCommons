@@ -76,7 +76,9 @@ rule "Institution Subscription Fee"
 		Action($t : t)
 		not( FeeIssued($a, $i, $t;) )
 	then
-		insert( new Obl($a, new Transfer($a, $i, $i, (Double) $fees.get($r)) ) );
+		if(((Double) $fees.get($r)) > 0) {
+			insert( new Obl($a, new Transfer($a, $i, $i, (Double) $fees.get($r)) ) );
+		}
 		insert( new FeeIssued($a, $i, $t) );
 end
 
@@ -90,7 +92,9 @@ rule "Pool appropriation fee"
 		accumulate( Appropriate($item : artifact, actor == $a, inst == $i, t == $t, $matcher.matches($item));
 			$count : count($item); $count > 0)
 	then
-		insert( new Obl($a, new Transfer($a, $i, $i, ((Double) $fees.get($r)) * $count.doubleValue()) ) );
+		if(((Double) $fees.get($r)) > 0) {
+			insert( new Obl($a, new Transfer($a, $i, $i, ((Double) $fees.get($r)) * $count.doubleValue()) ) );
+		}
 		insert( new FeeIssued($a, $p, $t) );
 end
 

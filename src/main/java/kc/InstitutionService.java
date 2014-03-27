@@ -14,6 +14,7 @@ import uk.ac.imperial.einst.ipower.IPower;
 import uk.ac.imperial.einst.micropay.MicroPayments;
 import uk.ac.imperial.einst.resource.ProvisionAppropriationSystem;
 import uk.ac.imperial.einst.resource.facility.Facilities;
+import uk.ac.imperial.einst.vote.Voting;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.plugin.Plugin;
@@ -46,6 +47,8 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 		modules.add(MicroPayments.class);
 		modules.add(Facilities.class);
 		modules.add(KnowledgeCommons.class);
+		modules.add(Voting.class);
+		modules.add(CollectiveChoice.class);
 		this.session = new EInstSession(modules);
 		this.ipower = this.session.getModule(IPower.class);
 		this.payments = this.session.getModule(MicroPayments.class);

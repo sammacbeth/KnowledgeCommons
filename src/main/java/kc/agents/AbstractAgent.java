@@ -1,8 +1,10 @@
 package kc.agents;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
@@ -33,6 +35,12 @@ import uk.ac.imperial.einst.resource.ProvisionAppropriationSystem;
 import uk.ac.imperial.einst.resource.Prune;
 import uk.ac.imperial.einst.resource.Remove;
 import uk.ac.imperial.einst.resource.Request;
+import uk.ac.imperial.einst.vote.CloseBallot;
+import uk.ac.imperial.einst.vote.Issue;
+import uk.ac.imperial.einst.vote.OpenBallot;
+import uk.ac.imperial.einst.vote.Preferences;
+import uk.ac.imperial.einst.vote.Vote;
+import uk.ac.imperial.einst.vote.Voting;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
@@ -307,6 +315,97 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 							- pruneBefore, 0));
 				}
 			}
+		}
+	}
+
+	class OpenBallotsBehaviour extends PowerReactiveBehaviour {
+
+		int ballotPeriod = 5;
+		int ballotDuration = 2;
+		Voting v;
+		Set<Issue> ballotWanted = new HashSet<Issue>();
+		Queue<Issue> ballotsOpened = new LinkedList<Issue>();
+
+		public OpenBallotsBehaviour() {
+			super(new OpenBallot(AbstractAgent.this, null, null));
+		}
+
+		@Override
+		public void initialise() {
+			super.initialise();
+			try {
+				v = inst.getSession().getModule(Voting.class);
+			} catch (UnavailableModuleException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void doBehaviour() {
+			super.doBehaviour();
+			int t = getTime().intValue();
+			if (t > 0 && t % ballotPeriod == 0) {
+				for (Institution in : this.institutions) {
+					for (Issue i : v.getIssues(in)) {
+						if (!ballotWanted.contains(i)) {
+							inst.act(new OpenBallot(AbstractAgent.this, in, i));
+							ballotsOpened.add(i);
+						}
+					}
+				}
+			}
+			if (t % ballotPeriod == ballotDuration) {
+				while (!ballotsOpened.isEmpty()) {
+					Issue i = ballotsOpened.poll();
+					inst.act(new CloseBallot(AbstractAgent.this, i.getInst(), v
+							.getOpenBallot(i)));
+				}
+			}
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
+			super.onEvent(type, value);
+			if (type.equals("wantballot") && value instanceof Issue) {
+				ballotWanted.add((Issue) value);
+			}
+		}
+	}
+
+	class VoteBehaviour implements Behaviour {
+
+		IPower pow;
+		Voting v;
+		Map<Issue, Object> preferences = new HashMap<Issue, Object>();
+
+		public VoteBehaviour() {
+			super();
+		}
+
+		@Override
+		public void doBehaviour() {
+			for (Action a : pow.powList(AbstractAgent.this, new Vote(
+					AbstractAgent.this, null, null, null))) {
+				Vote v = (Vote) a;
+				inst.act(new Vote(AbstractAgent.this, v.getInst(), v
+							.getBallot(), new Preferences(v.getBallot().getOptions()[2])));
+			}
+		}
+
+		@Override
+		public void initialise() {
+			try {
+				pow = inst.getSession().getModule(IPower.class);
+				v = inst.getSession().getModule(Voting.class);
+			} catch (UnavailableModuleException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
+			// TODO Auto-generated method stub
+
 		}
 
 	}

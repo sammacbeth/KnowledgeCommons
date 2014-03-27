@@ -1,0 +1,15 @@
+import kc.choice.PoolFee
+
+import uk.ac.imperial.einst.vote.Declare
+
+global org.apache.log4j.Logger logger
+
+rule "Change pool fees"
+	when
+		$issue : PoolFee($p : pool)
+		Declare( ballot.issue == $issue, $w : winner, valid == true )
+	then
+		$issue.updateFees($w);
+		// trigger recache of Pool
+		modify($p) {}
+end

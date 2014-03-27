@@ -115,7 +115,10 @@ public class GameSimulation extends InjectedSimulation {
 		// banditExprSetup(s);
 		Institution i = new InstitutionBuilder(session, "i1", 100)
 				.addMeasuredPool(0)
-				.addPredictorPool(0)
+				.addPredictorPool()
+				.withDynamicFee("consumer", 0.0, RoleOf.roleSet("initiator"),
+						RoleOf.roleSet("initiator"), 0.05)
+				.end()
 				.addFacility(facilitySunk, facilityFixed,
 						facilityMarginalStorage, facilityMarginalTrans).build();
 
