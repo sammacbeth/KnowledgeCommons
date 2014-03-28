@@ -4,9 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import uk.ac.imperial.einst.Action;
 import uk.ac.imperial.presage2.db.sql.SqlStorage;
 
 import com.google.inject.Inject;
@@ -47,10 +49,8 @@ public class KCStorage extends SqlStorage {
 					+ "INDEX(`simId`, `time`), INDEX(`simId`));");
 			createTable.execute("CREATE TABLE IF NOT EXISTS instActions "
 					+ "(`simId` bigint(20) NOT NULL, `time` int NOT NULL, "
-					+ "`provisions` int NOT NULL DEFAULT 0, "
-					+ "`appropriations` int NOT NULL DEFAULT 0, "
-					+ "`requests` int NOT NULL DEFAULT 0, "
-					+ "PRIMARY KEY(`simId`,`time`));");
+					+ "`action` VARCHAR(255) NOT NULL, "
+					+ "PRIMARY KEY(`simId`,`time`,`action`));");
 
 			gameInsert = conn
 					.prepareStatement("INSERT INTO nArmedBandit VALUES(?,?,?,?);");
@@ -107,16 +107,23 @@ public class KCStorage extends SqlStorage {
 				logSnapshotInsert.addBatch();
 			}
 			logSnapshotInsert.executeBatch();
-			PreparedStatement processLog = conn
-					.prepareStatement("INSERT INTO instActions ("
-							+ "SELECT a.simId, a.time, "
-							+ "(SELECT COUNT(*) FROM `droolsSnapshot` WHERE simId = a.simId AND object LIKE CONCAT('provision(%, Measured%) at ', a.time)) AS provisions,"
-							+ "(SELECT COUNT(*) FROM `droolsSnapshot` WHERE simId = a.simId AND object LIKE CONCAT('appropriate(%, Measured%) at ', a.time)) AS appropriations,"
-							+ "(SELECT COUNT(*) FROM `droolsSnapshot` WHERE simId = a.simId AND object LIKE CONCAT('request(%type(Measured)%) at ', a.time)) AS requests "
-							+ "FROM gameActions AS a WHERE a.simId = ? "
-							+ "GROUP BY a.simId, a.time)");
-			processLog.setLong(1, simId);
-			processLog.execute();
+		} catch (SQLException e) {
+			logger.fatal("Error inserting data", e);
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void insertActions(int t, List<Action> actions) {
+		try {
+			PreparedStatement logActions = conn
+					.prepareStatement("INSERT IGNORE INTO instActions VALUES(?,?,?);");
+			for (Action a : actions) {
+				logActions.setLong(1, simId);
+				logActions.setInt(2, a.getT());
+				logActions.setString(3, a.toString());
+				logActions.addBatch();
+			}
+			logActions.executeBatch();
 		} catch (SQLException e) {
 			logger.fatal("Error inserting data", e);
 			throw new RuntimeException(e);

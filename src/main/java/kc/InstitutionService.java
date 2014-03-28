@@ -26,6 +26,7 @@ import com.google.inject.Singleton;
 public class InstitutionService extends EnvironmentService implements Plugin {
 
 	int t = 0;
+	int tminus1 = 0;
 	EInstSession session;
 	IPower ipower;
 	MicroPayments payments;
@@ -84,6 +85,10 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 
 	@Override
 	public void incrementTime() {
+		tminus1 = t - 1;
+		if (sto != null && session.getActionLog().containsKey(tminus1)) {
+			sto.insertActions(tminus1, session.getActionLog().get(tminus1));
+		}
 		t++;
 	}
 
@@ -97,8 +102,15 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 
 	@Override
 	public void onSimulationComplete() {
-		if (sto != null)
+		session.printActionLog();
+		if (sto != null) {
 			sto.insertDroolsSnapshot(t, session.getObjects());
+			for (int t = ++tminus1; t <= this.t; t++) {
+				if (session.getActionLog().containsKey(t)) {
+					sto.insertActions(t, session.getActionLog().get(t));
+				}
+			}
+		}
 	}
 
 }
