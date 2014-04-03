@@ -44,11 +44,18 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 
 	protected KCStorage sto = null;
 
-	@Inject
+	double measuringCost = 0.0;
+
 	public Game(EnvironmentSharedStateAccess sharedState,
 			EnvironmentServiceProvider serviceProvider) {
+		this(sharedState, serviceProvider, 0.0);
+	}
+
+	public Game(EnvironmentSharedStateAccess sharedState,
+			EnvironmentServiceProvider serviceProvider, double measuringCost) {
 		super(sharedState);
 		this.serviceProvider = serviceProvider;
+		this.measuringCost = measuringCost;
 	}
 
 	@Inject(optional = true)
@@ -92,7 +99,8 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 			throws ActionHandlingException {
 		if (action instanceof Strategy) {
 			final Strategy s = (Strategy) action;
-			final double u = getReward(actor, s);
+			// strategy reward - cost of strategy
+			final double u = getReward(actor, s) - getCost(actor, s);
 			final int time = SimTime.get().intValue();
 
 			this.sharedState.change("account", actor, new StateTransformer() {
@@ -102,7 +110,7 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 					Account a = accounts.get(actor);
 					a.setBalance(a.getBalance() + u);
 
-					logger.info(s +" got reward: "+ u +"; "+ a);
+					logger.info(s + " got reward: " + u + "; " + a);
 					// sharedstate way
 					double account = (Double) state;
 					if (Double.isNaN(account)) {
@@ -127,6 +135,10 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 		return null;
 	}
 
+	protected double getCost(UUID actor, Strategy s) {
+		return s.measure ? this.measuringCost : 0.0;
+	}
+
 	protected abstract double getReward(UUID actor, Strategy s);
 
 	public abstract State getState(UUID actor);
@@ -139,6 +151,10 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 			logger.warn(score);
 		}
 		return score;
+	}
+
+	public double getMeasuringCost() {
+		return measuringCost;
 	}
 
 	private MultiUserQueue<Measured> getMeasuredQueue(UUID actor) {
