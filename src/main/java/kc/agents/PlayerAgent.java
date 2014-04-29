@@ -56,6 +56,7 @@ public class PlayerAgent extends AbstractAgent {
 		a.addBehaviour(a.new ProvisionMeasuredBehaviour());
 		a.addBehaviour(a.new AppropriateMeasuredBehaviour());
 		a.addBehaviour(a.new InstitutionalBehaviour());
+		a.addBehaviour(a.new RoleManagement());
 		return a;
 	}
 
@@ -73,6 +74,7 @@ public class PlayerAgent extends AbstractAgent {
 		a.addBehaviour(a.new ProvisionMeasuredBehaviour());
 		a.addBehaviour(a.new AppropriateMeasuredBehaviour());
 		a.addBehaviour(a.new InstitutionalBehaviour());
+		a.addBehaviour(a.new RoleManagement());
 		return a;
 	}
 
@@ -123,7 +125,7 @@ public class PlayerAgent extends AbstractAgent {
 		int strategyDuration = 0;
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor) {
-			this(predictor, new GreedyPredictor(0.5, 0.5, 0.0));
+			this(predictor, new GreedyPredictor(1.0, 0.5, 0.0));
 		}
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor,
@@ -142,10 +144,21 @@ public class PlayerAgent extends AbstractAgent {
 		public void doBehaviour() {
 			if (current == null || --strategyDuration <= 0) {
 				// periodically reassess strategy
+				if(this.predictor != null && predictor instanceof SlavePredictor) {
+					// decrement usage of this role
+					SlavePredictor sp = (SlavePredictor) this.predictor;
+					decrementRoleUsage(sp.source, "consumer");
+				}
 				current = strategy.actionSelection(State.NONE, getStrategies());
 				this.predictor = options.get(current.getId());
 				strategyDuration = strategyEvalPeriod;
 				logger.info("Chosen Predictor is: " + this.predictor);
+				
+				if(predictor instanceof SlavePredictor) {
+					// increment usage of this role
+					SlavePredictor sp = (SlavePredictor) this.predictor;
+					incrementRoleUsage(sp.source, "consumer");
+				}
 			}
 
 			if (last != null) {

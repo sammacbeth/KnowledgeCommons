@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import kc.Game;
 import kc.GameSimulation;
@@ -16,12 +17,15 @@ import kc.Measured;
 import kc.prediction.Predictor;
 import kc.util.MultiUserQueue;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
 import uk.ac.imperial.einst.Action;
 import uk.ac.imperial.einst.Actor;
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.UnavailableModuleException;
+import uk.ac.imperial.einst.access.AccessControl;
+import uk.ac.imperial.einst.access.Resign;
 import uk.ac.imperial.einst.ipower.IPower;
 import uk.ac.imperial.einst.ipower.Obl;
 import uk.ac.imperial.einst.ipower.ObligationReactive;
@@ -54,6 +58,8 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 	List<Behaviour> behaviours = new LinkedList<Behaviour>();
 
 	MultiUserQueue<Measured> measured = new MultiUserQueue<Measured>();
+
+	Map<Pair<Institution, String>, AtomicInteger> roleUsage = new HashMap<Pair<Institution, String>, AtomicInteger>();
 
 	public AbstractAgent(UUID id, String name) {
 		super(id, name);
@@ -388,7 +394,8 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 					AbstractAgent.this, null, null, null))) {
 				Vote v = (Vote) a;
 				inst.act(new Vote(AbstractAgent.this, v.getInst(), v
-							.getBallot(), new Preferences(v.getBallot().getOptions()[2])));
+						.getBallot(), new Preferences(v.getBallot()
+						.getOptions()[2])));
 			}
 		}
 
@@ -408,6 +415,59 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 
 		}
 
+	}
+
+	class RoleManagement implements Behaviour {
+
+		AccessControl ac;
+
+		@Override
+		public void initialise() {
+			try {
+				ac = inst.getSession().getModule(AccessControl.class);
+			} catch (UnavailableModuleException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void doBehaviour() {
+			// leave institutions we're not using
+			if (getTime().intValue() % 3 == 0) {
+				for (Map.Entry<Pair<Institution, String>, AtomicInteger> e : roleUsage
+						.entrySet()) {
+					Institution i = e.getKey().getLeft();
+					String role = e.getKey().getRight();
+					// resign from instutions we're not using
+					if (e.getValue().get() == 0
+							&& ac.getRoles(AbstractAgent.this, i)
+									.contains(role)) {
+						inst.act(new Resign(AbstractAgent.this, i, role));
+					}
+				}
+			}
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
+			// TODO Auto-generated method stub
+
+		}
+
+	}
+
+	public void incrementRoleUsage(Institution i, String role) {
+		final Pair<Institution, String> key = Pair.of(i, role);
+		if (!roleUsage.containsKey(key))
+			roleUsage.put(key, new AtomicInteger());
+		roleUsage.get(key).incrementAndGet();
+	}
+
+	public void decrementRoleUsage(Institution i, String role) {
+		final Pair<Institution, String> key = Pair.of(i, role);
+		if (!roleUsage.containsKey(key))
+			roleUsage.put(key, new AtomicInteger(1));
+		roleUsage.get(key).decrementAndGet();
 	}
 
 }

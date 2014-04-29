@@ -93,13 +93,13 @@ public class InstitutionBuilder {
 		}
 
 		public PoolBuilder withFee(String role, double fee) {
-			pool.getAppropriationFees().put("analyst", fee);
+			pool.getAppropriationFees().put(role, fee);
 			return this;
 		}
 
 		public PoolBuilder withDynamicFee(String role, double fee,
 				Set<String> cfv, Set<String> vote, double incrementValue) {
-			pool.getAppropriationFees().put("analyst", fee);
+			pool.getAppropriationFees().put(role, fee);
 			session.insert(new PoolFee(pool, role, cfv, vote, incrementValue));
 			return this;
 		}
