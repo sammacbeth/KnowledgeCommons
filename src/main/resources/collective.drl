@@ -9,7 +9,17 @@ rule "Change pool fees"
 		$issue : PoolFee($p : pool)
 		Declare( ballot.issue == $issue, $w : winner, valid == true )
 	then
-		$issue.updateFees($w);
+		$issue.updateFee($w);
 		// trigger recache of Pool
 		modify($p) {}
+end
+
+rule "Change Subscription fees"
+	when
+		$issue : SubscriptionFee($i : inst)
+		Declare( ballot.issue == $issue, $w : winner, valid == true )
+	then
+		$issue.updateFee($w);
+		// trigger recache of inst
+		modify($i) {}
 end

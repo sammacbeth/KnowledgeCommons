@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import kc.choice.PoolFee;
+import kc.choice.SubscriptionFee;
 import kc.prediction.Predictor;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
@@ -12,6 +13,8 @@ import uk.ac.imperial.einst.resource.ArtifactMatcher;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
 import uk.ac.imperial.einst.resource.facility.Facility;
+import uk.ac.imperial.einst.vote.Plurality;
+import uk.ac.imperial.einst.vote.VoteMethod;
 
 public class InstitutionBuilder {
 
@@ -42,6 +45,15 @@ public class InstitutionBuilder {
 		return this;
 	}
 
+	public InstitutionBuilder addDynamicSubscription(Set<String> roles,
+			double fee, Set<String> cfv, Set<String> vote, double incrementValue) {
+		SubscriptionFee issue = new SubscriptionFee(inst, cfv, vote,
+				VoteMethod.PREFERENCE, Plurality.NAME, roles, incrementValue);
+		issue.setFee(fee);
+		session.insert(issue);
+		return this;
+	}
+
 	public PoolBuilder addPool(Set<String> contrib, Set<String> extract,
 			Set<String> remove, ArtifactMatcher matcher) {
 		return new PoolBuilder(new MeteredPool(inst, contrib, extract, remove,
@@ -58,8 +70,8 @@ public class InstitutionBuilder {
 
 	public InstitutionBuilder addMeasuredPool(double fee, Set<String> cfvRoles,
 			Set<String> voteRoles, double incrementValue) {
-		return addMeasuredPool().withDynamicFee("analyst", fee, cfvRoles,
-				voteRoles, incrementValue).end();
+		return addMeasuredPool().withDynamicFee(RoleOf.roleSet("analyst"), fee,
+				cfvRoles, voteRoles, incrementValue).end();
 	}
 
 	public PoolBuilder addPredictorPool() {
@@ -97,10 +109,11 @@ public class InstitutionBuilder {
 			return this;
 		}
 
-		public PoolBuilder withDynamicFee(String role, double fee,
+		public PoolBuilder withDynamicFee(Set<String> roles, double fee,
 				Set<String> cfv, Set<String> vote, double incrementValue) {
-			pool.getAppropriationFees().put(role, fee);
-			session.insert(new PoolFee(pool, role, cfv, vote, incrementValue));
+			PoolFee issue = new PoolFee(pool, roles, cfv, vote, incrementValue);
+			issue.setFee(fee);
+			session.insert(issue);
 			return this;
 		}
 
