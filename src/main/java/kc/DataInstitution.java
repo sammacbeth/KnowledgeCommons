@@ -10,6 +10,7 @@ public class DataInstitution implements Institution {
 
 	final String name;
 	final Account account;
+	double profit = 0;
 
 	String payRole = "initiator";
 	final Map<String, Double> subscriptionFees = new HashMap<String, Double>();
@@ -39,6 +40,14 @@ public class DataInstitution implements Institution {
 
 	public Map<String, Double> getSubscriptionFees() {
 		return subscriptionFees;
+	}
+
+	public double getProfit() {
+		return profit;
+	}
+
+	public void setProfit(double profit) {
+		this.profit = profit;
 	}
 
 }

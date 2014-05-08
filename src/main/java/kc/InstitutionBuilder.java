@@ -48,7 +48,7 @@ public class InstitutionBuilder {
 	public InstitutionBuilder addDynamicSubscription(Set<String> roles,
 			double fee, Set<String> cfv, Set<String> vote, double incrementValue) {
 		SubscriptionFee issue = new SubscriptionFee(inst, cfv, vote,
-				VoteMethod.PREFERENCE, Plurality.NAME, roles, incrementValue);
+				VoteMethod.SINGLE, Plurality.NAME, roles, incrementValue);
 		issue.setFee(fee);
 		session.insert(issue);
 		return this;

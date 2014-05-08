@@ -8,6 +8,8 @@ import uk.ac.imperial.einst.micropay.Account
 import uk.ac.imperial.einst.micropay.Transfer
 import uk.ac.imperial.einst.resource.facility.Facility
 
+import java.lang.Integer
+
 global org.apache.log4j.Logger logger
 
 declare Bankrupt
@@ -99,3 +101,16 @@ rule "Pool appropriation fee"
 		insert( new FeeIssued($a, $p, $t) );
 end
 
+rule "Institution margin"
+	salience -100
+	no-loop
+	when
+		$i : DataInstitution()
+		T($t : t)
+		accumulate( Transfer($q : amount, payee == $i, t > $t - 10); $income : sum( $q ))
+		accumulate( Invoice( $q : amount, payer == $i, t > $t - 10); $expense : sum( $q ))
+	then
+		modify($i) {
+			setProfit( ($income.doubleValue() - $expense.doubleValue()) / 10 );
+		}
+end

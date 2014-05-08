@@ -1,4 +1,5 @@
 import kc.choice.PoolFee
+import kc.choice.SubscriptionFee
 
 import uk.ac.imperial.einst.vote.Declare
 

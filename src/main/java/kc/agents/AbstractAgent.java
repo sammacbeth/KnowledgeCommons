@@ -1,19 +1,24 @@
 package kc.agents;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import kc.DataInstitution;
 import kc.Game;
 import kc.GameSimulation;
 import kc.InstitutionService;
 import kc.Measured;
+import kc.choice.SubscriptionFee;
 import kc.prediction.Predictor;
 import kc.util.MultiUserQueue;
 
@@ -468,6 +473,128 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		if (!roleUsage.containsKey(key))
 			roleUsage.put(key, new AtomicInteger(1));
 		roleUsage.get(key).decrementAndGet();
+	}
+
+	class SubscriptionVote implements Behaviour {
+
+		IPower pow;
+		Voting voting;
+		AccessControl ac;
+
+		final Profile type;
+
+		public SubscriptionVote(Profile type) {
+			super();
+			this.type = type;
+		}
+
+		@Override
+		public void doBehaviour() {
+			for (Action a : pow.powList(AbstractAgent.this, new Vote(
+					AbstractAgent.this, null, null, null))) {
+				Vote v = (Vote) a;
+				DataInstitution i = (DataInstitution) v.getInst();
+				if (v.getBallot().getIssue() instanceof SubscriptionFee) {
+					// determine if agent pays this fee, or if they are
+					// responsible for institution costs
+					SubscriptionFee issue = (SubscriptionFee) v.getBallot()
+							.getIssue();
+					Set<String> currentRoles = ac.getRoles(AbstractAgent.this,
+							i);
+					boolean payer = !Collections.disjoint(currentRoles,
+							issue.getRoles());
+					boolean initiator = currentRoles
+							.contains(((DataInstitution) v.getInst())
+									.getPayRole());
+
+					// accumulate vote preferences
+					Map<Object, AtomicInteger> preferences = new HashMap<Object, AtomicInteger>();
+					final Object[] options = v.getBallot().getOptions();
+					for (Object o : v.getBallot().getOptions()) {
+						preferences.put(o, new AtomicInteger());
+					}
+
+					final Object decrease = options[0];
+					final Object nochange = options[1];
+					final Object increase = options[2];
+					double instBalance = i.getAccount().getBalance();
+					double instProfit = i.getProfit();
+
+					if (type == Profile.GREEDY) {
+						if (initiator)
+							preferences.get(increase).incrementAndGet();
+						if (payer)
+							preferences.get(decrease).incrementAndGet();
+					} else if (type == Profile.SUSTAINABLE) {
+						// deficit not recovering (within n timesteps)
+						if (instBalance < 0
+								&& instProfit * 10 < -1 * instBalance)
+							preferences.get(increase).incrementAndGet();
+						// credit, increasing
+						else if (instBalance > 0 && instProfit > 0)
+							preferences.get(decrease).incrementAndGet();
+						else
+							preferences.get(nochange).incrementAndGet();
+					}
+
+					switch (issue.getMethod()) {
+					case SINGLE:
+						Object chosen = null;
+						int max = 0;
+						for (Map.Entry<Object, AtomicInteger> pref : preferences
+								.entrySet()) {
+							if (pref.getValue().get() > max) {
+								max = pref.getValue().get();
+								chosen = pref.getKey();
+							}
+						}
+						if (chosen != null) {
+							inst.act(new Vote(AbstractAgent.this, v.getInst(),
+									v.getBallot(), chosen));
+						}
+						break;
+					case PREFERENCE:
+					case RANK_ORDER:
+						Preferences votePref = new Preferences();
+						List<Map.Entry<Object, AtomicInteger>> prefList = new LinkedList<Map.Entry<Object, AtomicInteger>>(
+								preferences.entrySet());
+						Collections
+								.sort(prefList,
+										new Comparator<Map.Entry<Object, AtomicInteger>>() {
+											@Override
+											public int compare(
+													Entry<Object, AtomicInteger> o1,
+													Entry<Object, AtomicInteger> o2) {
+												return o1.getValue().get()
+														- o2.getValue().get();
+											}
+										});
+						for (Map.Entry<Object, AtomicInteger> e : prefList) {
+							votePref.addPreference(e.getKey());
+						}
+						inst.act(new Vote(AbstractAgent.this, v.getInst(), v
+								.getBallot(), votePref));
+						break;
+					}
+				}
+			}
+		}
+
+		@Override
+		public void initialise() {
+			try {
+				pow = inst.getSession().getModule(IPower.class);
+				voting = inst.getSession().getModule(Voting.class);
+				ac = inst.getSession().getModule(AccessControl.class);
+			} catch (UnavailableModuleException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
+		}
+
 	}
 
 }

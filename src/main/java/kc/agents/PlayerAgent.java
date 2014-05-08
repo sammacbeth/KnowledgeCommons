@@ -57,6 +57,7 @@ public class PlayerAgent extends AbstractAgent {
 		a.addBehaviour(a.new AppropriateMeasuredBehaviour());
 		a.addBehaviour(a.new InstitutionalBehaviour());
 		a.addBehaviour(a.new RoleManagement());
+		a.addBehaviour(a.new SubscriptionVote(Profile.SUSTAINABLE));
 		return a;
 	}
 
@@ -75,6 +76,7 @@ public class PlayerAgent extends AbstractAgent {
 		a.addBehaviour(a.new AppropriateMeasuredBehaviour());
 		a.addBehaviour(a.new InstitutionalBehaviour());
 		a.addBehaviour(a.new RoleManagement());
+		a.addBehaviour(a.new SubscriptionVote(Profile.GREEDY));
 		return a;
 	}
 
