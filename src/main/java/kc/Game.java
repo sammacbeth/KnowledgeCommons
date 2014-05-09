@@ -109,18 +109,14 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 					// drools way
 					Account a = accounts.get(actor);
 					a.setBalance(a.getBalance() + u);
+					double account = a.getBalance();
 
 					logger.info(s + " got reward: " + u + "; " + a);
 					// sharedstate way
-					double account = (Double) state;
-					if (Double.isNaN(account)) {
-						logger.warn(account);
-					} else {
-						account += u;
-					}
+					//double account = (Double) state;
 					if (sto != null) {
 						sto.insertPlayerGameRound(time, names.get(actor),
-								s.getId(), u, a.getBalance());
+								s.getId(), u, account);
 					}
 					return account;
 				}

@@ -10,6 +10,8 @@ public abstract class FeeIssue extends Issue {
 
 	final Set<String> roles;
 	final double incrementValue;
+	double minValue = 0.0;
+	double maxValue = 1.0;
 	static Object[] options = new Integer[] { -1, 0, 1 };
 
 	protected FeeIssue(Institution inst, String name, Set<String> cfvRoles,
@@ -42,10 +44,10 @@ public abstract class FeeIssue extends Issue {
 		}
 		switch (opt) {
 		case -1:
-			current = Math.max(0.0, current - incrementValue);
+			current = Math.max(minValue, current - incrementValue);
 			break;
 		case 1:
-			current = current + incrementValue;
+			current = Math.min(maxValue, current + incrementValue);
 			break;
 		}
 		setFee(current);

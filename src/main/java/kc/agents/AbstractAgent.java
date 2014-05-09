@@ -35,6 +35,7 @@ import uk.ac.imperial.einst.ipower.IPower;
 import uk.ac.imperial.einst.ipower.Obl;
 import uk.ac.imperial.einst.ipower.ObligationReactive;
 import uk.ac.imperial.einst.ipower.PowerReactive;
+import uk.ac.imperial.einst.micropay.MicroPayments;
 import uk.ac.imperial.einst.resource.Appropriate;
 import uk.ac.imperial.einst.resource.AppropriationsListener;
 import uk.ac.imperial.einst.resource.ArtifactMatcher;
@@ -481,6 +482,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		IPower pow;
 		Voting voting;
 		AccessControl ac;
+		MicroPayments pay;
 
 		final Profile type;
 
@@ -519,6 +521,9 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 					final Object nochange = options[1];
 					final Object increase = options[2];
 					double instBalance = i.getAccount().getBalance();
+					if(initiator) {
+						instBalance += pay.getAccount(AbstractAgent.this).getBalance();
+					}
 					double instProfit = i.getProfit();
 
 					if (type == Profile.GREEDY) {
@@ -587,6 +592,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 				pow = inst.getSession().getModule(IPower.class);
 				voting = inst.getSession().getModule(Voting.class);
 				ac = inst.getSession().getModule(AccessControl.class);
+				pay = inst.getSession().getModule(MicroPayments.class);
 			} catch (UnavailableModuleException e) {
 				throw new RuntimeException(e);
 			}
