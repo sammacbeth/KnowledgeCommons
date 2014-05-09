@@ -448,6 +448,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 							&& ac.getRoles(AbstractAgent.this, i)
 									.contains(role)) {
 						inst.act(new Resign(AbstractAgent.this, i, role));
+						sendEvent("leaveInstitution", i);
 					}
 				}
 			}

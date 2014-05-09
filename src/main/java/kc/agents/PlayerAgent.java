@@ -146,7 +146,8 @@ public class PlayerAgent extends AbstractAgent {
 		public void doBehaviour() {
 			if (current == null || --strategyDuration <= 0) {
 				// periodically reassess strategy
-				if(this.predictor != null && predictor instanceof SlavePredictor) {
+				if (this.predictor != null
+						&& predictor instanceof SlavePredictor) {
 					// decrement usage of this role
 					SlavePredictor sp = (SlavePredictor) this.predictor;
 					decrementRoleUsage(sp.source, "consumer");
@@ -155,8 +156,8 @@ public class PlayerAgent extends AbstractAgent {
 				this.predictor = options.get(current.getId());
 				strategyDuration = strategyEvalPeriod;
 				logger.info("Chosen Predictor is: " + this.predictor);
-				
-				if(predictor instanceof SlavePredictor) {
+
+				if (predictor instanceof SlavePredictor) {
 					// increment usage of this role
 					SlavePredictor sp = (SlavePredictor) this.predictor;
 					incrementRoleUsage(sp.source, "consumer");
@@ -191,6 +192,22 @@ public class PlayerAgent extends AbstractAgent {
 				for (Map.Entry<Integer, Predictor> e : options.entrySet()) {
 					if (e.getValue().equals(value)) {
 						toRemove.add(e.getKey());
+					}
+				}
+				for (int id : toRemove) {
+					options.remove(id);
+					if (current != null && current.getId() == id) {
+						current = null;
+					}
+				}
+			} else if (type.equals("leaveInstitution")) {
+				Set<Integer> toRemove = new HashSet<Integer>();
+				for (Map.Entry<Integer, Predictor> e : options.entrySet()) {
+					if (e.getValue() instanceof SlavePredictor) {
+						SlavePredictor p = (SlavePredictor) e.getValue();
+						if (p.source.equals(value)) {
+							toRemove.add(e.getKey());
+						}
 					}
 				}
 				for (int id : toRemove) {
