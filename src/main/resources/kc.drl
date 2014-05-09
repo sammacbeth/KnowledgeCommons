@@ -16,6 +16,11 @@ declare Bankrupt
 	inst : Institution
 end
 
+declare PaidInstCosts
+	inst : Institution
+	t : int
+end
+
 query isBankrupt(i)
 	Bankrupt(i;)
 end
@@ -52,17 +57,19 @@ rule "Pay institution Costs"
 	when
 		$i : DataInstitution($r : payRole)
 		$acc : Account(holder == $i, balance < 0, $bal : balance)
+		T($t : t)
+		not( PaidInstCosts($i, $t;) )
 		accumulate( 
 			RoleOf(inst == $i, role == $r, $a : actor); 
 			$payers : collectSet($a);
 			$payers.size() > 0)
 	then
-		logger.info($acc);
 		double balanceDue = -1 * $bal / $payers.size();
 		for(Object o : $payers) {
 			Actor a = (Actor) o;
 			insert( new Obl(a, new Transfer(a, $i, $i, balanceDue) ));
 		}
+		insert( new PaidInstCosts($i,$t) );
 end
 
 declare FeeIssued
@@ -108,9 +115,9 @@ rule "Institution margin"
 		$i : DataInstitution()
 		T($t : t)
 		accumulate( Transfer($q : amount, payee == $i, t > $t - 10); $income : sum( $q ))
-		accumulate( Invoice( $q : amount, payer == $i, t > $t - 10); $expense : sum( $q ))
+		accumulate( Invoice( $q : amount, payer == $i, t > $t - 9); $expense : sum( $q ))
 	then
 		modify($i) {
-			setProfit( ($income.doubleValue() - $expense.doubleValue()) / 10 );
+			setProfit( ($income.doubleValue() - $expense.doubleValue()) / Math.min(10,$t) );
 		}
 end
