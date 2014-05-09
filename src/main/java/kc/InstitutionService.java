@@ -7,6 +7,7 @@ import java.util.Set;
 import kc.util.KCStorage;
 import uk.ac.imperial.einst.Action;
 import uk.ac.imperial.einst.EInstSession;
+import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.Module;
 import uk.ac.imperial.einst.UnavailableModuleException;
 import uk.ac.imperial.einst.access.AccessControl;
@@ -33,7 +34,7 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 	KnowledgeCommons kc;
 
 	KCStorage sto;
-
+	
 	@Inject
 	public InstitutionService(EnvironmentSharedStateAccess sharedState)
 			throws NoSuchMethodException, SecurityException,
@@ -94,6 +95,9 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 
 	@Override
 	public void initialise() {
+		if(sto != null) {
+			sto.insertInitialState(session.getObjects());
+		}
 	}
 
 	@Override
@@ -102,7 +106,7 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 
 	@Override
 	public void onSimulationComplete() {
-		session.printActionLog();
+		//session.printActionLog();
 		if (sto != null) {
 			sto.insertDroolsSnapshot(t, session.getObjects());
 			for (int t = ++tminus1; t <= this.t; t++) {
@@ -111,6 +115,10 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 				}
 			}
 		}
+	}
+	
+	public double getBalance(Institution i) {
+		return payments.getAccount(i).getBalance();
 	}
 
 }

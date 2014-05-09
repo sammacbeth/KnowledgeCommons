@@ -51,6 +51,11 @@ public class KCStorage extends SqlStorage {
 					+ "(`simId` bigint(20) NOT NULL, `time` int NOT NULL, "
 					+ "`action` VARCHAR(255) NOT NULL, "
 					+ "PRIMARY KEY(`simId`,`time`,`action`));");
+			createTable.execute("CREATE TABLE IF NOT EXISTS initialState "
+					+ "(`simId` bigint(20) NOT NULL, "
+					+ "`object` VARCHAR(255) NOT NULL, "
+					+ "PRIMARY KEY(`simId`,`object`), "
+					+ "INDEX(`simId`));");
 
 			gameInsert = conn
 					.prepareStatement("INSERT INTO nArmedBandit VALUES(?,?,?,?);");
@@ -104,6 +109,22 @@ public class KCStorage extends SqlStorage {
 				logSnapshotInsert.setLong(1, simId);
 				logSnapshotInsert.setInt(2, t);
 				logSnapshotInsert.setString(3, o.toString());
+				logSnapshotInsert.addBatch();
+			}
+			logSnapshotInsert.executeBatch();
+		} catch (SQLException e) {
+			logger.fatal("Error inserting data", e);
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void insertInitialState(Set<Object> objects) {
+		try {
+			PreparedStatement logSnapshotInsert = conn
+					.prepareStatement("INSERT INTO initialState VALUES(?,?);");
+			for (Object o : objects) {
+				logSnapshotInsert.setLong(1, simId);
+				logSnapshotInsert.setString(2, o.toString());
 				logSnapshotInsert.addBatch();
 			}
 			logSnapshotInsert.executeBatch();
