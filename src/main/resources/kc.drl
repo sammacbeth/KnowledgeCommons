@@ -1,6 +1,7 @@
 import kc.DataInstitution
 import kc.MeteredPool
 
+import uk.ac.imperial.einst.T
 import uk.ac.imperial.einst.Institution
 import uk.ac.imperial.einst.access.RoleOf
 import uk.ac.imperial.einst.ipower.Obl
@@ -18,6 +19,12 @@ end
 
 declare PaidInstCosts
 	inst : Institution
+	t : int
+end
+
+declare FeeIssued
+	actor : Actor
+	source : Object
 	t : int
 end
 
@@ -72,12 +79,6 @@ rule "Pay institution Costs"
 		insert( new PaidInstCosts($i,$t) );
 end
 
-declare FeeIssued
-	actor : Actor
-	source : Object
-	t : int
-end
-
 rule "Institution Subscription Fee"
 	when
 		RoleOf($a : actor, $i : inst, $r : role)
@@ -85,10 +86,10 @@ rule "Institution Subscription Fee"
 		T($t : t)
 		not( FeeIssued($a, $i, $t;) )
 	then
+		insert( new FeeIssued($a, $i, $t) );
 		if(((Double) $fees.get($r)) > 0) {
 			insert( new Obl($a, new Transfer($a, $i, $i, (Double) $fees.get($r)) ) );
 		}
-		insert( new FeeIssued($a, $i, $t) );
 end
 
 rule "Pool appropriation fee"
@@ -113,11 +114,13 @@ rule "Institution margin"
 	no-loop
 	when
 		$i : DataInstitution()
-		T($t : t)
+		T($t : t, t>0)
 		accumulate( Transfer($q : amount, payee == $i, t > $t - 10); $income : sum( $q ))
 		accumulate( Invoice( $q : amount, payer == $i, t > $t - 9); $expense : sum( $q ))
 	then
+		double profit = ($income.doubleValue() - $expense.doubleValue()) / Math.min(10,$t);
+		logger.info("In: " + $income + ", Out: "+ $expense +", Profit: " + profit);
 		modify($i) {
-			setProfit( ($income.doubleValue() - $expense.doubleValue()) / Math.min(10,$t) );
+			setProfit( profit );
 		}
 end
