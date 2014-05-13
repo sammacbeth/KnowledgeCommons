@@ -105,7 +105,12 @@ public class KCStorage extends SqlStorage {
 		try {
 			PreparedStatement logSnapshotInsert = conn
 					.prepareStatement("INSERT INTO droolsSnapshot VALUES(?,?,?);");
+			int count = 0;
 			for (Object o : objects) {
+				if(++count > 1000) {
+					logSnapshotInsert.executeBatch();
+					logSnapshotInsert.clearBatch();
+				}
 				logSnapshotInsert.setLong(1, simId);
 				logSnapshotInsert.setInt(2, t);
 				logSnapshotInsert.setString(3, o.toString());

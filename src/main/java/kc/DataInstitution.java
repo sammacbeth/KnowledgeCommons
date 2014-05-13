@@ -1,7 +1,10 @@
 package kc;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.micropay.Account;
@@ -12,22 +15,23 @@ public class DataInstitution implements Institution {
 	final Account account;
 	double profit = 0;
 
-	String payRole = "initiator";
+	Set<String> payRoles = new HashSet<String>();
 	final Map<String, Double> subscriptionFees = new HashMap<String, Double>();
 
-	DataInstitution(String name, double borrowLimit) {
+	DataInstitution(String name, double borrowLimit, String... payRoles) {
 		super();
 		this.name = name;
 		this.account = new Account(this, 0, borrowLimit);
+		Collections.addAll(this.payRoles, payRoles);
 	}
 
 	@Override
 	public String toString() {
 		return name;
 	}
-
-	public String getPayRole() {
-		return payRole;
+	
+	public Set<String> getPayRoles() {
+		return payRoles;
 	}
 
 	public String getName() {

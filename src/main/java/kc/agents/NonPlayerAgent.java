@@ -9,7 +9,7 @@ public class NonPlayerAgent extends AbstractAgent {
 		super(Random.randomUUID(), name);
 	}
 
-	public static NonPlayerAgent analystAgent(String name, Predictor predictor) {
+	public static NonPlayerAgent analystAgent(String name, Predictor predictor, Profile p) {
 		NonPlayerAgent a = new NonPlayerAgent(name);
 		a.addBehaviour(a.new AppropriateMeasuredBehaviour());
 		a.addBehaviour(a.new ProvisionPredictorBehaviour(predictor));
@@ -18,7 +18,7 @@ public class NonPlayerAgent extends AbstractAgent {
 		a.addBehaviour(a.new PruneMeasuredBehaviour());
 		a.addBehaviour(a.new OpenBallotsBehaviour());
 		//a.addBehaviour(a.new VoteBehaviour());
-		a.addBehaviour(a.new SubscriptionVote(Profile.SUSTAINABLE));
+		a.addBehaviour(a.new SubscriptionVote(p));
 		return a;
 	}
 

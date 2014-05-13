@@ -3,6 +3,8 @@ package kc.util;
 import java.util.HashMap;
 import java.util.Map;
 
+import kc.agents.Profile;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -152,7 +154,7 @@ public class KCCLI extends Presage2CLI {
 	}
 
 	private Experiment facilityCosts() {
-		Experiment sunk = new ParameterSweep("sunk", "sunk:%{p.facilitySunk}",
+		Experiment sunk = new ParameterSweep("sunk", "sunk:%{p.facilitySunk}:%{p.analystProfile}",
 				"kc.GameSimulation", 100)
 				.addArrayParameter("facilitySunk", 0, 10, 90)
 				.addFixedParameter("facilityFixed", 0.0)
@@ -160,21 +162,21 @@ public class KCCLI extends Presage2CLI {
 				.addFixedParameter("facilityMarginalTrans", 0.0);
 
 		Experiment fixed = new ParameterSweep("fixed",
-				"fixed:%{p.facilityFixed}", "kc.GameSimulation", 100)
+				"fixed:%{p.facilityFixed}:%{p.analystProfile}", "kc.GameSimulation", 100)
 				.addFixedParameter("facilitySunk", 0.0)
 				.addArrayParameter("facilityFixed", 1.0, 2.0, 4.0)
 				.addFixedParameter("facilityMarginalStorage", 0.0)
 				.addFixedParameter("facilityMarginalTrans", 0.0);
 
 		Experiment sto = new ParameterSweep("sto",
-				"sto:%{p.facilityMarginalStorage}", "kc.GameSimulation", 100)
+				"sto:%{p.facilityMarginalStorage}:%{p.analystProfile}", "kc.GameSimulation", 100)
 				.addFixedParameter("facilitySunk", 0.0)
 				.addFixedParameter("facilityFixed", 0.0)
 				.addArrayParameter("facilityMarginalStorage", 0.005, 0.01, 0.02)
 				.addFixedParameter("facilityMarginalTrans", 0.0);
 
 		Experiment trans = new ParameterSweep("trans",
-				"trans:%{p.facilityMarginalTrans}", "kc.GameSimulation", 100)
+				"trans:%{p.facilityMarginalTrans}:%{p.analystProfile}", "kc.GameSimulation", 100)
 				.addFixedParameter("facilitySunk", 0.0)
 				.addFixedParameter("facilityFixed", 0.0)
 				.addFixedParameter("facilityMarginalStorage", 0.0)
@@ -182,9 +184,10 @@ public class KCCLI extends Presage2CLI {
 
 		Experiment multi = new MultiExperiment("facilities", "", sunk, fixed,
 				sto, trans);
-		multi.addFixedParameter("gameClass", "kc.games.KnowledgeGame");
-		multi.addFixedParameter("qscale", 0.01);
+		multi.addFixedParameter("gameClass", "kc.games.NArmedBanditGame");
+		multi.addFixedParameter("numStrategies", 50);
 		multi.addFixedParameter("gathererLimit", 10);
+		multi.addArrayParameter("analystProfile", Profile.SUSTAINABLE.name(), Profile.PROFITABLE.name());
 		return multi;
 	}
 }

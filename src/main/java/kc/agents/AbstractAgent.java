@@ -332,7 +332,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 
 	class OpenBallotsBehaviour extends PowerReactiveBehaviour {
 
-		int ballotPeriod = 10;
+		int ballotPeriod = 5;
 		int ballotDuration = 2;
 		Voting v;
 		Set<Issue> ballotWanted = new HashSet<Issue>();
@@ -506,9 +506,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 							i);
 					boolean payer = !Collections.disjoint(currentRoles,
 							issue.getRoles());
-					boolean initiator = currentRoles
-							.contains(((DataInstitution) v.getInst())
-									.getPayRole());
+					boolean initiator = currentRoles.contains("initiator");
 
 					// accumulate vote preferences
 					Map<Object, AtomicInteger> preferences = new HashMap<Object, AtomicInteger>();
@@ -521,11 +519,18 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 					final Object nochange = options[1];
 					final Object increase = options[2];
 					double instBalance = i.getAccount().getBalance();
-					if(initiator) {
-						instBalance += pay.getAccount(AbstractAgent.this).getBalance();
+					if (initiator) {
+						instBalance += pay.getAccount(AbstractAgent.this)
+								.getBalance();
 					}
 					double instProfit = i.getProfit();
-					double projectedBalance = instBalance + 10 * instProfit;
+					Set<Actor> payers = new HashSet<Actor>();
+					for (String role : issue.getRoles()) {
+						payers.addAll(ac.getActorsInRole(role, i));
+					}
+					int numPayers = payers.size();
+					double incrementValue = issue.getIncrementValue()
+							* numPayers;
 
 					if (type == Profile.GREEDY) {
 						if (initiator)
@@ -533,15 +538,50 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 						if (payer)
 							preferences.get(decrease).incrementAndGet();
 					} else if (type == Profile.SUSTAINABLE) {
-						// deficit not recovering (within n timesteps)
-						if (instBalance < 0
-								&& projectedBalance < 0)
-							preferences.get(increase).incrementAndGet();
-						// credit, increasing
-						else if (instBalance > 0 && projectedBalance > 5)
-							preferences.get(decrease).incrementAndGet();
-						else
-							preferences.get(nochange).incrementAndGet();
+						final double target = 5;
+						if (instBalance > target) {
+							if (instProfit > 0)
+								preferences.get(decrease).incrementAndGet();
+							else {
+								double stepsToUB = (target - instBalance)
+										/ instProfit;
+								double votesToLevel = -1 * instProfit
+										/ incrementValue;
+								if (stepsToUB < 5 * votesToLevel)
+									preferences.get(increase).incrementAndGet();
+								else if (stepsToUB > 10 * votesToLevel)
+									preferences.get(decrease).incrementAndGet();
+								else
+									preferences.get(nochange).incrementAndGet();
+							}
+						} else if (instBalance < target) {
+							if (instProfit < 0)
+								preferences.get(increase).incrementAndGet();
+							else {
+								double stepsToLB = (target - instBalance)
+										/ instProfit;
+								double votesToLevel = instProfit
+										/ incrementValue;
+								if (stepsToLB < 5 * votesToLevel)
+									preferences.get(decrease).incrementAndGet();
+								else if (stepsToLB > 10 * votesToLevel)
+									preferences.get(increase).incrementAndGet();
+								else
+									preferences.get(nochange).incrementAndGet();
+							}
+						}
+
+					} else if (type == Profile.PROFITABLE) {
+						if (initiator) {
+							double targetProfit = numPayers * 0.3;
+							if (instProfit + incrementValue < targetProfit) {
+								preferences.get(increase).incrementAndGet();
+							} else if (instProfit > targetProfit) {
+								preferences.get(decrease).incrementAndGet();
+							} else {
+								preferences.get(nochange).incrementAndGet();
+							}
+						}
 					}
 
 					switch (issue.getMethod()) {

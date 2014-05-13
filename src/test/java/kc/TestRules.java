@@ -67,8 +67,7 @@ public class TestRules {
 		assertTrue(BORROW_LIM > -1 * NEGATIVE_BALANCE);
 
 		session.LOG_WM = false;
-		DataInstitution i = new DataInstitution("i1", BORROW_LIM);
-		i.payRole = "test";
+		DataInstitution i = new DataInstitution("i1", BORROW_LIM, "test");
 		i.getAccount().setBalance(NEGATIVE_BALANCE);
 		session.insert(i);
 		session.insert(i.getAccount());
