@@ -332,7 +332,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 
 	class OpenBallotsBehaviour extends PowerReactiveBehaviour {
 
-		int ballotPeriod = 5;
+		int ballotPeriod = 10;
 		int ballotDuration = 2;
 		Voting v;
 		Set<Issue> ballotWanted = new HashSet<Issue>();
@@ -525,6 +525,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 						instBalance += pay.getAccount(AbstractAgent.this).getBalance();
 					}
 					double instProfit = i.getProfit();
+					double projectedBalance = instBalance + 10 * instProfit;
 
 					if (type == Profile.GREEDY) {
 						if (initiator)
@@ -534,10 +535,10 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 					} else if (type == Profile.SUSTAINABLE) {
 						// deficit not recovering (within n timesteps)
 						if (instBalance < 0
-								&& instProfit * 10 < -1 * instBalance)
+								&& projectedBalance < 0)
 							preferences.get(increase).incrementAndGet();
 						// credit, increasing
-						else if (instBalance > 0 && instProfit > 0)
+						else if (instBalance > 0 && projectedBalance > 5)
 							preferences.get(decrease).incrementAndGet();
 						else
 							preferences.get(nochange).incrementAndGet();
