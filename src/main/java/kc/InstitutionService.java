@@ -34,7 +34,9 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 	KnowledgeCommons kc;
 
 	KCStorage sto;
-	
+
+	Set<DataInstitution> institutions = new HashSet<DataInstitution>();
+
 	@Inject
 	public InstitutionService(EnvironmentSharedStateAccess sharedState)
 			throws NoSuchMethodException, SecurityException,
@@ -90,13 +92,25 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 		if (sto != null && session.getActionLog().containsKey(tminus1)) {
 			sto.insertActions(tminus1, session.getActionLog().get(tminus1));
 		}
+		if (sto != null) {
+			for (DataInstitution i : institutions) {
+				sto.insertPlayerGameRound(t, i.name, 0, 0,
+						i.account.getBalance());
+			}
+		}
 		t++;
 	}
 
 	@Override
 	public void initialise() {
-		if(sto != null) {
-			sto.insertInitialState(session.getObjects());
+		if (sto != null) {
+			Set<Object> sessionObjects = session.getObjects();
+			sto.insertInitialState(sessionObjects);
+			for (Object o : sessionObjects) {
+				if (o instanceof DataInstitution) {
+					institutions.add((DataInstitution) o);
+				}
+			}
 		}
 	}
 
@@ -106,7 +120,7 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 
 	@Override
 	public void onSimulationComplete() {
-		//session.printActionLog();
+		// session.printActionLog();
 		if (sto != null) {
 			sto.insertDroolsSnapshot(t, session.getObjects());
 			for (int t = ++tminus1; t <= this.t; t++) {
@@ -116,7 +130,7 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 			}
 		}
 	}
-	
+
 	public double getBalance(Institution i) {
 		return payments.getAccount(i).getBalance();
 	}
