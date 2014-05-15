@@ -15,7 +15,7 @@ public abstract class SetFeeIssue extends FeeIssue {
 		double v = min;
 		for (int i = 0; i < options.length; i++) {
 			options[i] = Math.min(v, max);
-			v += inc;
+			v += Math.round(inc*100)/100.0;
 		}
 		return options;
 	}
