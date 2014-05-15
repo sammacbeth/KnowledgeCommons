@@ -147,7 +147,7 @@ public class TestRules {
 		DescriptiveStatistics received = new DescriptiveStatistics(10);
 		received.addValue(0);
 		Set<Obl> added = new HashSet<Obl>();
-		for (int j = 0; j < 8; j++) {
+		for (int j = 0; j < 4; j++) {
 			Set<Obl> obls = new HashSet<Obl>();
 			obls.addAll(inst.ipower.getObligations(a1));
 			obls.addAll(inst.ipower.getObligations(a2));

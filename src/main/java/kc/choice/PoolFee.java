@@ -8,7 +8,7 @@ import uk.ac.imperial.einst.resource.Pool;
 import uk.ac.imperial.einst.vote.Plurality;
 import uk.ac.imperial.einst.vote.VoteMethod;
 
-public class PoolFee extends FeeIssue {
+public class PoolFee extends ChangeFeeIssue {
 
 	final MeteredPool pool;
 
@@ -25,7 +25,7 @@ public class PoolFee extends FeeIssue {
 	}
 
 	@Override
-	protected double getFee() {
+	public double getFee() {
 		double fee = 0;
 		Map<String, Double> fees = pool.getAppropriationFees();
 		for (String r : roles) {

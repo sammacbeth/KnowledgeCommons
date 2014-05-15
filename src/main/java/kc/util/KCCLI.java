@@ -43,6 +43,7 @@ public class KCCLI extends Presage2CLI {
 		addExperiment(experiments, bandits());
 		addExperiment(experiments, pseudo());
 		addExperiment(experiments, facilityCosts());
+		addExperiment(experiments, facilityCostsSub());
 		// Map<String, String> experiments = new HashMap<String, String>();
 		// experiments.put("bandits", "Get properties of the bandit game.");
 		// experiments.put("pseudo", "Get properties of the pseudo game.");
@@ -232,13 +233,13 @@ public class KCCLI extends Presage2CLI {
 				.addFixedParameter("facilityMarginalStorage", 0.0)
 				.addArrayParameter("facilityMarginalTrans", 0.1, 0.25, 0.5);
 
-		Experiment multi = new MultiExperiment("facilities", "", sunk, fixed,
+		Experiment multi = new MultiExperiment("facilitysub", "", sunk, fixed,
 				sto, trans);
 		multi.addFixedParameter("gameClass", "kc.games.KnowledgeGame");
 		multi.addFixedParameter("numStrategies", 50);
 		multi.addFixedParameter("gathererLimit", 10);
-		// multi.addArrayParameter("analystProfile", Profile.SUSTAINABLE.name(),
-		// Profile.PROFITABLE.name());
+		multi.addArrayParameter("analystProfile", Profile.SUSTAINABLE.name(),
+				Profile.PROFITABLE.name(), Profile.GREEDY);
 		return multi;
 	}
 }

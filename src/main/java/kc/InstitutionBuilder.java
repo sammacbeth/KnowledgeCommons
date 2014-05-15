@@ -13,7 +13,7 @@ import uk.ac.imperial.einst.resource.ArtifactMatcher;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
 import uk.ac.imperial.einst.resource.facility.Facility;
-import uk.ac.imperial.einst.vote.Plurality;
+import uk.ac.imperial.einst.vote.Borda;
 import uk.ac.imperial.einst.vote.VoteMethod;
 
 public class InstitutionBuilder {
@@ -48,7 +48,7 @@ public class InstitutionBuilder {
 	public InstitutionBuilder addDynamicSubscription(Set<String> roles,
 			double fee, Set<String> cfv, Set<String> vote, double incrementValue) {
 		SubscriptionFee issue = new SubscriptionFee(inst, cfv, vote,
-				VoteMethod.SINGLE, Plurality.NAME, roles, incrementValue);
+				VoteMethod.RANK_ORDER, Borda.NAME, roles, incrementValue);
 		issue.setFee(fee);
 		session.insert(issue);
 		return this;

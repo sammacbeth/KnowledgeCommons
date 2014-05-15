@@ -115,10 +115,10 @@ rule "Institution margin"
 	when
 		$i : DataInstitution()
 		T($t : t, t>0)
-		accumulate( $tr : Transfer($q : amount, payee == $i, t > $t - 10) and Cleared($tr;); $income : sum( $q ))
-		accumulate( Invoice( $q : amount, payer == $i, t > $t - 9); $expense : sum( $q ))
+		accumulate( $tr : Transfer($q : amount, payee == $i, t > $t - 5) and Cleared($tr;); $income : sum( $q ))
+		accumulate( Invoice( $q : amount, payer == $i, t > $t - 5); $expense : sum( $q ))
 	then
-		double profit = ($income.doubleValue() - $expense.doubleValue()) / Math.min(10,$t);
+		double profit = ($income.doubleValue() - $expense.doubleValue()) / Math.min(5,$t);
 		logger.info("In: " + $income + ", Out: "+ $expense +", Profit: " + profit);
 		modify($i) {
 			setProfit( profit );

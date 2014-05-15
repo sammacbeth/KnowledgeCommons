@@ -18,6 +18,7 @@ import kc.Game;
 import kc.GameSimulation;
 import kc.InstitutionService;
 import kc.Measured;
+import kc.choice.SetFeeIssue;
 import kc.choice.SubscriptionFee;
 import kc.prediction.Predictor;
 import kc.util.MultiUserQueue;
@@ -332,7 +333,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 
 	class OpenBallotsBehaviour extends PowerReactiveBehaviour {
 
-		int ballotPeriod = 5;
+		int ballotPeriod = 8;
 		int ballotDuration = 2;
 		Voting v;
 		Set<Issue> ballotWanted = new HashSet<Issue>();
@@ -511,117 +512,212 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 					// accumulate vote preferences
 					Map<Object, AtomicInteger> preferences = new HashMap<Object, AtomicInteger>();
 					final Object[] options = v.getBallot().getOptions();
-					for (Object o : v.getBallot().getOptions()) {
+					for (Object o : options) {
 						preferences.put(o, new AtomicInteger());
 					}
 
-					final Object decrease = options[0];
-					final Object nochange = options[1];
-					final Object increase = options[2];
-					double instBalance = i.getAccount().getBalance();
-					if (initiator) {
-						instBalance += pay.getAccount(AbstractAgent.this)
-								.getBalance();
-					}
-					double instProfit = i.getProfit();
-					Set<Actor> payers = new HashSet<Actor>();
-					for (String role : issue.getRoles()) {
-						payers.addAll(ac.getActorsInRole(role, i));
-					}
-					int numPayers = payers.size();
-					double incrementValue = issue.getIncrementValue()
-							* numPayers;
-
-					if (type == Profile.GREEDY) {
-						if (initiator)
-							preferences.get(increase).incrementAndGet();
-						if (payer)
-							preferences.get(decrease).incrementAndGet();
-					} else if (type == Profile.SUSTAINABLE) {
-						final double target = 5;
-						if (instBalance > target) {
-							if (instProfit > 0)
-								preferences.get(decrease).incrementAndGet();
-							else {
-								double stepsToUB = (target - instBalance)
-										/ instProfit;
-								double votesToLevel = -1 * instProfit
-										/ incrementValue;
-								if (stepsToUB < 5 * votesToLevel)
-									preferences.get(increase).incrementAndGet();
-								else if (stepsToUB > 10 * votesToLevel)
-									preferences.get(decrease).incrementAndGet();
-								else
-									preferences.get(nochange).incrementAndGet();
-							}
-						} else if (instBalance < target) {
-							if (instProfit < 0)
-								preferences.get(increase).incrementAndGet();
-							else {
-								double stepsToLB = (target - instBalance)
-										/ instProfit;
-								double votesToLevel = instProfit
-										/ incrementValue;
-								if (stepsToLB < 5 * votesToLevel)
-									preferences.get(decrease).incrementAndGet();
-								else if (stepsToLB > 10 * votesToLevel)
-									preferences.get(increase).incrementAndGet();
-								else
-									preferences.get(nochange).incrementAndGet();
-							}
+					if (issue instanceof SetFeeIssue) {
+						// new voting
+						double instBalance = i.getAccount().getBalance();
+						double instProfit = i.getProfit();
+						Set<Actor> payers = new HashSet<Actor>();
+						for (String role : issue.getRoles()) {
+							payers.addAll(ac.getActorsInRole(role, i));
 						}
-
-					} else if (type == Profile.PROFITABLE) {
-						if (initiator) {
-							double targetProfit = numPayers * 0.3;
-							if (instProfit + incrementValue < targetProfit) {
-								preferences.get(increase).incrementAndGet();
-							} else if (instProfit > targetProfit) {
-								preferences.get(decrease).incrementAndGet();
-							} else {
-								preferences.get(nochange).incrementAndGet();
+						int numPayers = payers.size();
+						if (type == Profile.GREEDY) {
+							// greedy: initator votes for max, payer votes for
+							// min value.
+							if (initiator) {
+								for (int j = 0; j < 2; j++) {
+									preferences.get(
+											options[options.length - j - 1])
+											.addAndGet(3 - j);
+								}
 							}
-						}
-					}
-
-					switch (issue.getMethod()) {
-					case SINGLE:
-						Object chosen = null;
-						int max = 0;
-						for (Map.Entry<Object, AtomicInteger> pref : preferences
-								.entrySet()) {
-							if (pref.getValue().get() > max) {
-								max = pref.getValue().get();
-								chosen = pref.getKey();
+							if (payer) {
+								for (int j = 0; j < 2; j++) {
+									preferences.get(options[j])
+											.addAndGet(3 - j);
+								}
 							}
-						}
-						if (chosen != null) {
+							Preferences votePref = Preferences.generate(
+									issue.getMethod(), preferences, false, 4);
 							inst.act(new Vote(AbstractAgent.this, v.getInst(),
-									v.getBallot(), chosen));
+									v.getBallot(), votePref));
+						} else if (type == Profile.SUSTAINABLE) {
+							// choose suitable fee to move inst balance towards target
+							final int projectionLength = 10;
+							final double target = 0;
+							double baseProfit = instProfit - issue.getFee()
+									* numPayers;
+							Map<Object, Double> projected = new HashMap<Object, Double>();
+							for (Object o : options) {
+								double fee = Double.parseDouble(o.toString());
+								if (fee > 0.65)
+									projected.put(o, 100.0);
+								else {
+									double profit = baseProfit + fee
+											* (double) numPayers;
+									projected.put(o, Math.abs(target
+											- (instBalance + projectionLength
+													* profit)));
+								}
+							}
+							Preferences votePref = Preferences.generate(
+									issue.getMethod(), projected, true, 3);
+							inst.act(new Vote(AbstractAgent.this, v.getInst(),
+									v.getBallot(), votePref));
+						} else if (type == Profile.PROFITABLE) {
+							if (initiator) {
+								// aim to take 0.6 per agent per timestep.
+								double baseProfit = instProfit - issue.getFee()
+										* numPayers;
+								double targetProfit = Math.max(baseProfit
+										+ numPayers * 0.6, 0);
+								Map<Object, Double> projectedProfit = new HashMap<Object, Double>();
+								for (Object o : options) {
+									double fee = Double.parseDouble(o
+											.toString());
+									double profit = baseProfit + fee
+											* numPayers;
+									projectedProfit.put(o,
+											Math.abs(targetProfit - profit));
+								}
+								Preferences votePref = Preferences.generate(
+										issue.getMethod(), projectedProfit,
+										true, 3);
+								inst.act(new Vote(AbstractAgent.this, v
+										.getInst(), v.getBallot(), votePref));
+							} else if(payer) {
+								// prefer lower fees
+								for (int j = 0; j < 2; j++) {
+									preferences.get(options[j])
+											.addAndGet(3 - j);
+								}
+								Preferences votePref = Preferences.generate(
+										issue.getMethod(), preferences, false, 4);
+								inst.act(new Vote(AbstractAgent.this, v.getInst(),
+										v.getBallot(), votePref));
+							}
+							
 						}
-						break;
-					case PREFERENCE:
-					case RANK_ORDER:
-						Preferences votePref = new Preferences();
-						List<Map.Entry<Object, AtomicInteger>> prefList = new LinkedList<Map.Entry<Object, AtomicInteger>>(
-								preferences.entrySet());
-						Collections
-								.sort(prefList,
-										new Comparator<Map.Entry<Object, AtomicInteger>>() {
-											@Override
-											public int compare(
-													Entry<Object, AtomicInteger> o1,
-													Entry<Object, AtomicInteger> o2) {
-												return o1.getValue().get()
-														- o2.getValue().get();
-											}
-										});
-						for (Map.Entry<Object, AtomicInteger> e : prefList) {
-							votePref.addPreference(e.getKey());
+					} else {
+						final Object decrease = options[0];
+						final Object nochange = options[1];
+						final Object increase = options[2];
+						double instBalance = i.getAccount().getBalance();
+						if (initiator) {
+							instBalance += pay.getAccount(AbstractAgent.this)
+									.getBalance();
 						}
-						inst.act(new Vote(AbstractAgent.this, v.getInst(), v
-								.getBallot(), votePref));
-						break;
+						double instProfit = i.getProfit();
+						Set<Actor> payers = new HashSet<Actor>();
+						for (String role : issue.getRoles()) {
+							payers.addAll(ac.getActorsInRole(role, i));
+						}
+						int numPayers = payers.size();
+						double incrementValue = issue.getIncrementValue()
+								* numPayers;
+
+						if (type == Profile.GREEDY) {
+							if (initiator)
+								preferences.get(increase).incrementAndGet();
+							if (payer)
+								preferences.get(decrease).incrementAndGet();
+						} else if (type == Profile.SUSTAINABLE) {
+							final double target = 5;
+							if (instBalance > target) {
+								if (instProfit > 0)
+									preferences.get(decrease).incrementAndGet();
+								else {
+									double stepsToUB = (target - instBalance)
+											/ instProfit;
+									double votesToLevel = -1 * instProfit
+											/ incrementValue;
+									if (stepsToUB < 5 * votesToLevel)
+										preferences.get(increase)
+												.incrementAndGet();
+									else if (stepsToUB > 10 * votesToLevel)
+										preferences.get(decrease)
+												.incrementAndGet();
+									else
+										preferences.get(nochange)
+												.incrementAndGet();
+								}
+							} else if (instBalance < target) {
+								if (instProfit < 0)
+									preferences.get(increase).incrementAndGet();
+								else {
+									double stepsToLB = (target - instBalance)
+											/ instProfit;
+									double votesToLevel = instProfit
+											/ incrementValue;
+									if (stepsToLB < 5 * votesToLevel)
+										preferences.get(decrease)
+												.incrementAndGet();
+									else if (stepsToLB > 10 * votesToLevel)
+										preferences.get(increase)
+												.incrementAndGet();
+									else
+										preferences.get(nochange)
+												.incrementAndGet();
+								}
+							}
+
+						} else if (type == Profile.PROFITABLE) {
+							if (initiator) {
+								double targetProfit = numPayers * 0.3;
+								if (instProfit + incrementValue < targetProfit) {
+									preferences.get(increase).incrementAndGet();
+								} else if (instProfit > targetProfit) {
+									preferences.get(decrease).incrementAndGet();
+								} else {
+									preferences.get(nochange).incrementAndGet();
+								}
+							}
+						}
+
+						switch (issue.getMethod()) {
+						case SINGLE:
+							Object chosen = null;
+							int max = 0;
+							for (Map.Entry<Object, AtomicInteger> pref : preferences
+									.entrySet()) {
+								if (pref.getValue().get() > max) {
+									max = pref.getValue().get();
+									chosen = pref.getKey();
+								}
+							}
+							if (chosen != null) {
+								inst.act(new Vote(AbstractAgent.this, v
+										.getInst(), v.getBallot(), chosen));
+							}
+							break;
+						case PREFERENCE:
+						case RANK_ORDER:
+							Preferences votePref = new Preferences();
+							List<Map.Entry<Object, AtomicInteger>> prefList = new LinkedList<Map.Entry<Object, AtomicInteger>>(
+									preferences.entrySet());
+							Collections
+									.sort(prefList,
+											new Comparator<Map.Entry<Object, AtomicInteger>>() {
+												@Override
+												public int compare(
+														Entry<Object, AtomicInteger> o1,
+														Entry<Object, AtomicInteger> o2) {
+													return o1.getValue().get()
+															- o2.getValue()
+																	.get();
+												}
+											});
+							for (Map.Entry<Object, AtomicInteger> e : prefList) {
+								votePref.addPreference(e.getKey());
+							}
+							inst.act(new Vote(AbstractAgent.this, v.getInst(),
+									v.getBallot(), votePref));
+							break;
+						}
 					}
 				}
 			}

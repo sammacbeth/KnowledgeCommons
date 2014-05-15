@@ -8,15 +8,14 @@ import uk.ac.imperial.einst.vote.VoteMethod;
 
 public abstract class FeeIssue extends Issue {
 
-	final Set<String> roles;
-	final double incrementValue;
+	protected final Set<String> roles;
+	protected final double incrementValue;
 	double minValue = 0.0;
 	double maxValue = 1.0;
-	static Object[] options = new Integer[] { -1, 0, 1 };
 
-	protected FeeIssue(Institution inst, String name, Set<String> cfvRoles,
+	public FeeIssue(Institution inst, String name, Set<String> cfvRoles,
 			Set<String> voteRoles, VoteMethod method, String wdm,
-			Set<String> roles, double incrementValue) {
+			Object[] options, Set<String> roles, double incrementValue) {
 		super(inst, name, cfvRoles, voteRoles, method, options, wdm);
 		this.roles = roles;
 		this.incrementValue = incrementValue;
@@ -30,30 +29,9 @@ public abstract class FeeIssue extends Issue {
 		return incrementValue;
 	}
 
-	public static Object[] getOptions() {
-		return options;
-	}
+	public abstract void updateFee(Object winner);
 
-	public void updateFee(Object winner) {
-		double current = getFee();
-		int opt;
-		try {
-			opt = Integer.parseInt(winner.toString());
-		} catch (NumberFormatException e) {
-			return;
-		}
-		switch (opt) {
-		case -1:
-			current = Math.max(minValue, current - incrementValue);
-			break;
-		case 1:
-			current = Math.min(maxValue, current + incrementValue);
-			break;
-		}
-		setFee(current);
-	}
-
-	protected abstract double getFee();
+	public abstract double getFee();
 
 	public abstract void setFee(double value);
 

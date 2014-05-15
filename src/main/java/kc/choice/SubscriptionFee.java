@@ -6,7 +6,7 @@ import java.util.Set;
 import kc.DataInstitution;
 import uk.ac.imperial.einst.vote.VoteMethod;
 
-public class SubscriptionFee extends FeeIssue {
+public class SubscriptionFee extends SetFeeIssue {
 
 	final DataInstitution di;
 
@@ -14,12 +14,12 @@ public class SubscriptionFee extends FeeIssue {
 			Set<String> voteRoles, VoteMethod method, String wdm,
 			Set<String> roles, double incrementValue) {
 		super(inst, "subfee-" + roles.toString(), cfvRoles, voteRoles, method,
-				wdm, roles, incrementValue);
+				wdm, roles, 0, 1, incrementValue);
 		this.di = inst;
 	}
 
 	@Override
-	protected double getFee() {
+	public double getFee() {
 		double fee = 0;
 		Map<String, Double> fees = di.getSubscriptionFees();
 		for (String r : roles) {
