@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
 import java.util.Set;
 
+import kc.agents.NonPlayerAgent;
 import kc.util.KCStorage;
 import uk.ac.imperial.einst.Action;
 import uk.ac.imperial.einst.EInstSession;
@@ -12,6 +13,7 @@ import uk.ac.imperial.einst.Module;
 import uk.ac.imperial.einst.UnavailableModuleException;
 import uk.ac.imperial.einst.access.AccessControl;
 import uk.ac.imperial.einst.ipower.IPower;
+import uk.ac.imperial.einst.micropay.Account;
 import uk.ac.imperial.einst.micropay.MicroPayments;
 import uk.ac.imperial.einst.resource.ProvisionAppropriationSystem;
 import uk.ac.imperial.einst.resource.facility.Facilities;
@@ -93,6 +95,11 @@ public class InstitutionService extends EnvironmentService implements Plugin {
 			sto.insertActions(tminus1, session.getActionLog().get(tminus1));
 		}
 		if (sto != null) {
+			for (Account ac : payments.getAccounts()) {
+				if (ac.getHolder() instanceof NonPlayerAgent)
+					sto.insertPlayerGameRound(t, ac.getHolder().toString(), 0,
+							0, ac.getBalance());
+			}
 			for (DataInstitution i : institutions) {
 				sto.insertPlayerGameRound(t, i.name, 0, 0,
 						i.account.getBalance());
