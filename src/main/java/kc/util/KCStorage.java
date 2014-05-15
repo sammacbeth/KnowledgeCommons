@@ -44,7 +44,7 @@ public class KCStorage extends SqlStorage {
 							+ "PRIMARY KEY(`simId`, `time`, `actor`))");
 			createTable.execute("CREATE TABLE IF NOT EXISTS droolsSnapshot "
 					+ "(`simId` bigint(20) NOT NULL, `time` int NOT NULL, "
-					+ "`object` VARCHAR(255) NOT NULL, "
+					+ "`object` VARCHAR(512) NOT NULL, "
 					+ "PRIMARY KEY(`simId`,`time`,`object`), "
 					+ "INDEX(`simId`, `time`), INDEX(`simId`));");
 			createTable.execute("CREATE TABLE IF NOT EXISTS instActions "
