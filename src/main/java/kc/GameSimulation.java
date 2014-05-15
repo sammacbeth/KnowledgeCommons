@@ -6,6 +6,7 @@ import java.util.Set;
 import kc.agents.AbstractAgent;
 import kc.agents.NonPlayerAgent;
 import kc.agents.PlayerAgent;
+import kc.agents.Profile;
 import kc.prediction.GreedyPredictor;
 import kc.prediction.Predictor;
 import kc.prediction.PseudoPredictor;
@@ -46,14 +47,18 @@ public class GameSimulation extends InjectedSimulation {
 	public static int seed = 1;
 	@Parameter(name = "qscale", optional = true)
 	public double qscale = 0.02;
-	@Parameter(name = "facilitySunk")
+	@Parameter(name = "facilitySunk", optional = true)
 	public double facilitySunk = 0.0;
-	@Parameter(name = "facilityFixed")
+	@Parameter(name = "facilityFixed", optional = true)
 	public double facilityFixed = 0.0;
-	@Parameter(name = "facilityMarginalStorage")
+	@Parameter(name = "facilityMarginalStorage", optional = true)
 	public double facilityMarginalStorage = 0.0;
-	@Parameter(name = "facilityMarginalTrans")
+	@Parameter(name = "facilityMarginalTrans", optional = true)
 	public double facilityMarginalTrans = 0.0;
+	@Parameter(name = "analystProfile", optional = true)
+	public Profile analystProfile = Profile.SUSTAINABLE;
+	@Parameter(name = "prune", optional = true)
+	public boolean prune = false;
 
 	public int iaCount = 10;
 	public int raCount = 5;
@@ -109,32 +114,11 @@ public class GameSimulation extends InjectedSimulation {
 
 	@Override
 	protected void addToScenario(Scenario s) {
-		this.session.LOG_WM = true;
+		this.session.LOG_WM = false;
 		s.addPlugin(this.inst);
 
 		// banditExprSetup(s);
-		Institution i = new InstitutionBuilder(session, "i1", 100)
-				.addMeasuredPool(0)
-				.addPredictorPool()
-				.withDynamicFee("consumer", 0.0, RoleOf.roleSet("initiator"),
-						RoleOf.roleSet("initiator"), 0.05)
-				.end()
-				.addFacility(facilitySunk, facilityFixed,
-						facilityMarginalStorage, facilityMarginalTrans).build();
-
-		for (int n = 0; n < gathererLimit; n++) {
-			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor());
-			addAgent(s, ag, 0, i, "gatherer", "consumer");
-		}
-
-		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
-				goodPredictor("a1"));
-		addAgent(s, ag, 20, i, "analyst", "initiator");
-
-		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
-				0, null);
-		addAgent(s, PlayerAgent.knowledgePlayer("rand", badPredictor()), 0,
-				null);
+		facilityExpr(s);
 	}
 
 	@EventListener
@@ -181,6 +165,55 @@ public class GameSimulation extends InjectedSimulation {
 				}
 			}
 		}
+	}
+
+	void facilityExpr(Scenario s) {
+		Institution i = new InstitutionBuilder(session, "i1", 100, "initiator",
+				"consumer")
+				.addMeasuredPool(0)
+				.addPredictorPool(0)
+				.addFacility(facilitySunk, facilityFixed,
+						facilityMarginalStorage, facilityMarginalTrans).build();
+		for (int n = 0; n < gathererLimit; n++) {
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor());
+			addAgent(s, ag, 10, i, "gatherer", "consumer");
+		}
+
+		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
+				goodPredictor("a1"), analystProfile);
+		if(prune)
+			addAgent(s, ag, 0, i, "analyst", "initiator", "manager");
+		else
+			addAgent(s, ag, 0, i, "analyst", "initiator");
+
+		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
+				0, null);
+		addAgent(s, PlayerAgent.knowledgePlayer("rand", badPredictor()), 0,
+				null);
+	}
+
+	void facilitySubExpr(Scenario s) {
+		Institution i = new InstitutionBuilder(session, "i1", 100)
+				.addMeasuredPool(0)
+				.addPredictorPool(0)
+				.addDynamicSubscription(RoleOf.roleSet("consumer"), 0.0,
+						RoleOf.roleSet("initiator"),
+						RoleOf.roleSet("initiator"), 0.1)
+				.addFacility(facilitySunk, facilityFixed,
+						facilityMarginalStorage, facilityMarginalTrans).build();
+		for (int n = 0; n < gathererLimit; n++) {
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor());
+			addAgent(s, ag, 0, i, "gatherer", "consumer");
+		}
+
+		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
+				goodPredictor("a1"), analystProfile);
+		addAgent(s, ag, 20, i, "analyst", "initiator");
+
+		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
+				0, null);
+		addAgent(s, PlayerAgent.knowledgePlayer("rand", badPredictor()), 0,
+				null);
 	}
 
 	Predictor badPredictor() {

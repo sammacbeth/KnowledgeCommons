@@ -34,10 +34,10 @@ public class InstitutionBuilder {
 			Predictor.class);
 
 	public InstitutionBuilder(EInstSession session, String name,
-			double borrowLimit) {
+			double borrowLimit, String...payRoles) {
 		super();
 		this.session = session;
-		inst = new DataInstitution(name, borrowLimit);
+		inst = new DataInstitution(name, borrowLimit, payRoles);
 	}
 
 	public InstitutionBuilder addSubscription(String role, double fee) {
