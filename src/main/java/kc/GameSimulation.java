@@ -57,6 +57,10 @@ public class GameSimulation extends InjectedSimulation {
 	public double facilityMarginalTrans = 0.0;
 	@Parameter(name = "analystProfile", optional = true)
 	public Profile analystProfile = Profile.SUSTAINABLE;
+	@Parameter(name = "consumerProfile", optional = true)
+	public Profile consumerProfile = Profile.SUSTAINABLE;
+	@Parameter(name = "greedyConsumers", optional = true)
+	public int greedyConsumers = 0;
 	@Parameter(name = "prune", optional = true)
 	public boolean prune = false;
 
@@ -118,7 +122,9 @@ public class GameSimulation extends InjectedSimulation {
 		s.addPlugin(this.inst);
 
 		// banditExprSetup(s);
-		facilityExpr(s);
+		// facilityExpr(s);
+		//facilitySubExpr(s);
+		subCollectiveExpr(s);
 	}
 
 	@EventListener
@@ -181,7 +187,7 @@ public class GameSimulation extends InjectedSimulation {
 
 		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
 				goodPredictor("a1"), analystProfile);
-		if(prune)
+		if (prune)
 			addAgent(s, ag, 0, i, "analyst", "initiator", "manager");
 		else
 			addAgent(s, ag, 0, i, "analyst", "initiator");
@@ -203,12 +209,37 @@ public class GameSimulation extends InjectedSimulation {
 						facilityMarginalStorage, facilityMarginalTrans).build();
 		for (int n = 0; n < gathererLimit; n++) {
 			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor());
-			addAgent(s, ag, 0, i, "gatherer", "consumer");
+			addAgent(s, ag, 10, i, "gatherer", "consumer");
 		}
 
 		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
 				goodPredictor("a1"), analystProfile);
-		addAgent(s, ag, 20, i, "analyst", "initiator");
+		addAgent(s, ag, 0, i, "analyst", "initiator");
+
+		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
+				0, null);
+		addAgent(s, PlayerAgent.knowledgePlayer("rand", badPredictor()), 0,
+				null);
+	}
+
+	void subCollectiveExpr(Scenario s) {
+		Institution i = new InstitutionBuilder(session, "i1", 100)
+				.addMeasuredPool(0)
+				.addPredictorPool(0)
+				.addDynamicSubscription(RoleOf.roleSet("consumer"), 0.0,
+						RoleOf.roleSet("initiator"),
+						RoleOf.roleSet("initiator", "consumer"), 0.1)
+				.addFacility(facilitySunk, facilityFixed,
+						facilityMarginalStorage, facilityMarginalTrans).build();
+		for (int n = 0; n < gathererLimit; n++) {
+			Profile pro = n < greedyConsumers ? Profile.GREEDY : consumerProfile;
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor(), pro);
+			addAgent(s, ag, 10, i, "gatherer", "consumer");
+		}
+
+		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
+				goodPredictor("a1"), analystProfile);
+		addAgent(s, ag, 0, i, "analyst", "initiator", "manager");
 
 		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
 				0, null);
