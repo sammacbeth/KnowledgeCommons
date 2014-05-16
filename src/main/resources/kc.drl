@@ -7,6 +7,8 @@ import uk.ac.imperial.einst.access.RoleOf
 import uk.ac.imperial.einst.ipower.Obl
 import uk.ac.imperial.einst.micropay.Account
 import uk.ac.imperial.einst.micropay.Transfer
+import uk.ac.imperial.einst.resource.Appropriate
+import uk.ac.imperial.einst.resource.Provision
 import uk.ac.imperial.einst.resource.facility.Facility
 
 import java.lang.Integer
@@ -116,11 +118,35 @@ rule "Institution margin"
 		$i : DataInstitution()
 		T($t : t, t>0)
 		accumulate( $tr : Transfer($q : amount, payee == $i, t > $t - 5) and Cleared($tr;); $income : sum( $q ))
-		accumulate( Invoice( $q : amount, payer == $i, t > $t - 5); $expense : sum( $q ))
+		accumulate( Invoice( $q : amount, payer == $i, t > $t - 5); $invoices : sum( $q ))
+		accumulate( Transfer($q : amount, payer == $i, t > $t - 5); $transfers : sum($q ))
 	then
-		double profit = ($income.doubleValue() - $expense.doubleValue()) / Math.min(5,$t);
-		logger.info("In: " + $income + ", Out: "+ $expense +", Profit: " + profit);
+		double profit = ($income.doubleValue() - $invoices.doubleValue() - $transfers.doubleValue()) / Math.min(5,$t);
+		logger.info("In: " + $income + ", Out: ("+ $invoices + ","+ $transfers +"), Profit: " + profit);
 		modify($i) {
 			setProfit( profit );
 		}
+end
+
+rule "Pay provider on appropriation"
+	when
+		T($t : t)
+		$app : Appropriate(t == $t, $art : artifact, $i : inst, $appropriator : actor, valid == true)
+		MeteredPool(inst == $i, payOnAppropriation > 0, artifacts contains $art, $pay : payOnAppropriation)
+		Provision($provider : actor, inst == $i, artifact == $art, actor != $appropriator, valid == true)
+		not( FeeIssued( $appropriator, $app, $t ;) )
+	then
+		insert( new Transfer($i, $provider, $pay) );
+		insert( new FeeIssued($appropriator, $app, $t) );
+end
+
+rule "Pay provider on provision"
+	when
+		T($t : t)
+		$prov : Provision(t == $t, $art : artifact, $i : inst, $provider : actor, valid == true)
+		MeteredPool(inst == $i, payOnProvision > 0, artifacts contains $art, $pay : payOnProvision)
+		not( FeeIssued( $provider, $prov, $t ;) )
+	then
+		insert( new Transfer($i, $provider, $pay) );
+		insert( new FeeIssued($provider, $prov, $t) );
 end

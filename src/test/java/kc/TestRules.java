@@ -16,13 +16,17 @@ import org.junit.Test;
 import uk.ac.imperial.einst.Action;
 import uk.ac.imperial.einst.Actor;
 import uk.ac.imperial.einst.EInstSession;
+import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.StubActor;
 import uk.ac.imperial.einst.access.RoleOf;
 import uk.ac.imperial.einst.ipower.Obl;
 import uk.ac.imperial.einst.micropay.Account;
 import uk.ac.imperial.einst.micropay.Invoice;
 import uk.ac.imperial.einst.micropay.Transfer;
+import uk.ac.imperial.einst.resource.Appropriate;
+import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
+import uk.ac.imperial.einst.resource.Provision;
 import uk.ac.imperial.einst.resource.facility.Facility;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 
@@ -30,6 +34,7 @@ public class TestRules {
 
 	InstitutionService inst = null;
 	EInstSession session = null;
+	final double DELTA = 0.000001;
 
 	@Before
 	public void setUp() throws Exception {
@@ -141,7 +146,7 @@ public class TestRules {
 		session.insert(ac2);
 
 		session.incrementTime();
-		
+
 		DescriptiveStatistics paid = new DescriptiveStatistics(10);
 		paid.addValue(5 + 1);
 		DescriptiveStatistics received = new DescriptiveStatistics(10);
@@ -160,9 +165,61 @@ public class TestRules {
 			paid.addValue(1);
 			session.incrementTime();
 			double balance = received.getSum() - paid.getSum();
-			assertEquals(balance, i.account.getBalance(), 0.00001);
-			assertEquals(balance / (1.0+j), i.profit, 0.00001);
+			assertEquals(balance, i.account.getBalance(), DELTA);
+			assertEquals(balance / (1.0 + j), i.profit, DELTA);
 		}
 		assertTrue(true);
+	}
+
+	@Test
+	public void testPayProvider() {
+		final double BORROW_LIM = 10;
+
+		DataInstitution i = new DataInstitution("i1", BORROW_LIM);
+		MeteredPool p = new MeteredPool(i, RoleOf.roleSet("test"),
+				RoleOf.roleSet("test"), RoleOf.roleSet(),
+				new ArtifactTypeMatcher(Institution.class));
+		p.payOnAppropriation = 0.1;
+		p.payOnProvision = 0.15;
+		session.insert(i);
+		session.insert(i.getAccount());
+		session.insert(p);
+		Set<Pool> pools = new HashSet<Pool>();
+		pools.add(p);
+		session.insert(new Facility(i, pools, 0, 0, 0, 0));
+
+		Actor a1 = new StubActor("a1");
+		Account ac1 = new Account(a1, 0);
+		Actor a2 = new StubActor("a2");
+		Account ac2 = new Account(a2, 0);
+		session.insert(new RoleOf(a1, i, "test"));
+		session.insert(new RoleOf(a2, i, "test"));
+		session.insert(ac1);
+		session.insert(ac2);
+
+		session.incrementTime();
+
+		session.insert(new Provision(a1, i, i));
+		session.incrementTime();
+		assertEquals(p.payOnProvision, ac1.getBalance(), DELTA);
+
+		session.insert(new Appropriate(a2, i, i));
+		session.incrementTime();
+
+		assertEquals(p.payOnProvision + p.payOnAppropriation, ac1.getBalance(),
+				DELTA);
+		assertEquals(0 - p.payOnProvision - p.payOnAppropriation, i
+				.getAccount().getBalance(), DELTA);
+		assertEquals(0.0, ac2.getBalance(), DELTA);
+
+		session.insert(new Appropriate(a2, i, i));
+		session.insert(new Appropriate(a1, i, i));
+		session.incrementTime();
+
+		assertEquals(p.payOnProvision + p.payOnAppropriation * 2,
+				ac1.getBalance(), DELTA);
+		assertEquals(0 - p.payOnProvision - p.payOnAppropriation * 2, i
+				.getAccount().getBalance(), DELTA);
+		assertEquals(0.0, ac2.getBalance(), DELTA);
 	}
 }
