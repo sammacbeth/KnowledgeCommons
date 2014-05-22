@@ -116,6 +116,16 @@ public class InstitutionBuilder {
 			session.insert(issue);
 			return this;
 		}
+		
+		public PoolBuilder setPayOnProvision(double payOnProvision) {
+			pool.payOnProvision = payOnProvision;
+			return this;
+		}
+		
+		public PoolBuilder setPayOnAppropriation(double payOnAppropriation) {
+			pool.payOnAppropriation = payOnAppropriation;
+			return this;
+		}
 
 		public InstitutionBuilder end() {
 			session.insert(pool);

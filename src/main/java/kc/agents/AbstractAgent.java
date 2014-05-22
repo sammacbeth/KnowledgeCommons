@@ -1,25 +1,20 @@
 package kc.agents;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import kc.DataInstitution;
 import kc.Game;
 import kc.GameSimulation;
 import kc.InstitutionService;
 import kc.Measured;
-import kc.choice.SetFeeIssue;
-import kc.choice.SubscriptionFee;
+import kc.choice.SubscriptionVote;
 import kc.prediction.Predictor;
 import kc.util.MultiUserQueue;
 
@@ -49,7 +44,6 @@ import uk.ac.imperial.einst.resource.Request;
 import uk.ac.imperial.einst.vote.CloseBallot;
 import uk.ac.imperial.einst.vote.Issue;
 import uk.ac.imperial.einst.vote.OpenBallot;
-import uk.ac.imperial.einst.vote.Preferences;
 import uk.ac.imperial.einst.vote.Vote;
 import uk.ac.imperial.einst.vote.Voting;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
@@ -389,10 +383,14 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 
 		IPower pow;
 		Voting v;
-		Map<Issue, Object> preferences = new HashMap<Issue, Object>();
+		AccessControl ac;
+		MicroPayments pay;
+		List<BallotHandler> handlers = new LinkedList<BallotHandler>();
+		Profile profile;
 
-		public VoteBehaviour() {
+		public VoteBehaviour(Profile p) {
 			super();
+			this.profile = p;
 		}
 
 		@Override
@@ -400,9 +398,12 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 			for (Action a : pow.powList(AbstractAgent.this, new Vote(
 					AbstractAgent.this, null, null, null))) {
 				Vote v = (Vote) a;
-				inst.act(new Vote(AbstractAgent.this, v.getInst(), v
-						.getBallot(), new Preferences(v.getBallot()
-						.getOptions()[2])));
+				for (BallotHandler h : handlers) {
+					if (h.canHandle(v.getBallot())) {
+						inst.act(h.getVote(v.getBallot()));
+						break;
+					}
+				}
 			}
 		}
 
@@ -411,15 +412,17 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 			try {
 				pow = inst.getSession().getModule(IPower.class);
 				v = inst.getSession().getModule(Voting.class);
+				ac = inst.getSession().getModule(AccessControl.class);
+				pay = inst.getSession().getModule(MicroPayments.class);
 			} catch (UnavailableModuleException e) {
 				throw new RuntimeException(e);
 			}
+			handlers.add(new SubscriptionVote(AbstractAgent.this, this.profile,
+					pow, v, ac, pay));
 		}
 
 		@Override
 		public void onEvent(String type, Object value) {
-			// TODO Auto-generated method stub
-
 		}
 
 	}
@@ -476,269 +479,6 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		if (!roleUsage.containsKey(key))
 			roleUsage.put(key, new AtomicInteger(1));
 		roleUsage.get(key).decrementAndGet();
-	}
-
-	class SubscriptionVote implements Behaviour {
-
-		IPower pow;
-		Voting voting;
-		AccessControl ac;
-		MicroPayments pay;
-
-		final Profile type;
-
-		public SubscriptionVote(Profile type) {
-			super();
-			this.type = type;
-		}
-
-		@Override
-		public void doBehaviour() {
-			for (Action a : pow.powList(AbstractAgent.this, new Vote(
-					AbstractAgent.this, null, null, null))) {
-				Vote v = (Vote) a;
-				DataInstitution i = (DataInstitution) v.getInst();
-				if (v.getBallot().getIssue() instanceof SubscriptionFee) {
-					// determine if agent pays this fee, or if they are
-					// responsible for institution costs
-					SubscriptionFee issue = (SubscriptionFee) v.getBallot()
-							.getIssue();
-					Set<String> currentRoles = ac.getRoles(AbstractAgent.this,
-							i);
-					boolean payer = !Collections.disjoint(currentRoles,
-							issue.getRoles());
-					boolean initiator = currentRoles.contains("initiator");
-
-					// accumulate vote preferences
-					Map<Object, AtomicInteger> preferences = new HashMap<Object, AtomicInteger>();
-					final Object[] options = v.getBallot().getOptions();
-					for (Object o : options) {
-						preferences.put(o, new AtomicInteger());
-					}
-
-					if (issue instanceof SetFeeIssue) {
-						// new voting
-						double instBalance = i.getAccount().getBalance();
-						double instProfit = i.getProfit();
-						Set<Actor> payers = new HashSet<Actor>();
-						for (String role : issue.getRoles()) {
-							payers.addAll(ac.getActorsInRole(role, i));
-						}
-						int numPayers = payers.size();
-						if (type == Profile.GREEDY) {
-							// greedy: initator votes for max, payer votes for
-							// min value.
-							if (initiator) {
-								for (int j = 0; j < 2; j++) {
-									preferences.get(
-											options[options.length - j - 1])
-											.addAndGet(3 - j);
-								}
-							}
-							if (payer) {
-								for (int j = 0; j < 2; j++) {
-									preferences.get(options[j])
-											.addAndGet(3 - j);
-								}
-							}
-							Preferences votePref = Preferences.generate(
-									issue.getMethod(), preferences, false, 4);
-							inst.act(new Vote(AbstractAgent.this, v.getInst(),
-									v.getBallot(), votePref));
-						} else if (type == Profile.SUSTAINABLE) {
-							// choose suitable fee to move inst balance towards target
-							final int projectionLength = 10;
-							final double target = 0;
-							double baseProfit = instProfit - issue.getFee()
-									* numPayers;
-							Map<Object, Double> projected = new HashMap<Object, Double>();
-							for (Object o : options) {
-								double fee = Double.parseDouble(o.toString());
-								if (fee > 0.65)
-									projected.put(o, 100.0);
-								else {
-									double profit = baseProfit + fee
-											* (double) numPayers;
-									projected.put(o, Math.abs(target
-											- (instBalance + projectionLength
-													* profit)));
-								}
-							}
-							Preferences votePref = Preferences.generate(
-									issue.getMethod(), projected, true, 3);
-							inst.act(new Vote(AbstractAgent.this, v.getInst(),
-									v.getBallot(), votePref));
-						} else if (type == Profile.PROFITABLE) {
-							if (initiator) {
-								// aim to take 0.6 per agent per timestep.
-								double baseProfit = instProfit - issue.getFee()
-										* numPayers;
-								double targetProfit = Math.max(baseProfit
-										+ numPayers * 0.6, 0);
-								Map<Object, Double> projectedProfit = new HashMap<Object, Double>();
-								for (Object o : options) {
-									double fee = Double.parseDouble(o
-											.toString());
-									double profit = baseProfit + fee
-											* numPayers;
-									projectedProfit.put(o,
-											Math.abs(targetProfit - profit));
-								}
-								Preferences votePref = Preferences.generate(
-										issue.getMethod(), projectedProfit,
-										true, 3);
-								inst.act(new Vote(AbstractAgent.this, v
-										.getInst(), v.getBallot(), votePref));
-							} else if(payer) {
-								// prefer lower fees
-								for (int j = 0; j < 2; j++) {
-									preferences.get(options[j])
-											.addAndGet(3 - j);
-								}
-								Preferences votePref = Preferences.generate(
-										issue.getMethod(), preferences, false, 4);
-								inst.act(new Vote(AbstractAgent.this, v.getInst(),
-										v.getBallot(), votePref));
-							}
-							
-						}
-					} else {
-						final Object decrease = options[0];
-						final Object nochange = options[1];
-						final Object increase = options[2];
-						double instBalance = i.getAccount().getBalance();
-						if (initiator) {
-							instBalance += pay.getAccount(AbstractAgent.this)
-									.getBalance();
-						}
-						double instProfit = i.getProfit();
-						Set<Actor> payers = new HashSet<Actor>();
-						for (String role : issue.getRoles()) {
-							payers.addAll(ac.getActorsInRole(role, i));
-						}
-						int numPayers = payers.size();
-						double incrementValue = issue.getIncrementValue()
-								* numPayers;
-
-						if (type == Profile.GREEDY) {
-							if (initiator)
-								preferences.get(increase).incrementAndGet();
-							if (payer)
-								preferences.get(decrease).incrementAndGet();
-						} else if (type == Profile.SUSTAINABLE) {
-							final double target = 5;
-							if (instBalance > target) {
-								if (instProfit > 0)
-									preferences.get(decrease).incrementAndGet();
-								else {
-									double stepsToUB = (target - instBalance)
-											/ instProfit;
-									double votesToLevel = -1 * instProfit
-											/ incrementValue;
-									if (stepsToUB < 5 * votesToLevel)
-										preferences.get(increase)
-												.incrementAndGet();
-									else if (stepsToUB > 10 * votesToLevel)
-										preferences.get(decrease)
-												.incrementAndGet();
-									else
-										preferences.get(nochange)
-												.incrementAndGet();
-								}
-							} else if (instBalance < target) {
-								if (instProfit < 0)
-									preferences.get(increase).incrementAndGet();
-								else {
-									double stepsToLB = (target - instBalance)
-											/ instProfit;
-									double votesToLevel = instProfit
-											/ incrementValue;
-									if (stepsToLB < 5 * votesToLevel)
-										preferences.get(decrease)
-												.incrementAndGet();
-									else if (stepsToLB > 10 * votesToLevel)
-										preferences.get(increase)
-												.incrementAndGet();
-									else
-										preferences.get(nochange)
-												.incrementAndGet();
-								}
-							}
-
-						} else if (type == Profile.PROFITABLE) {
-							if (initiator) {
-								double targetProfit = numPayers * 0.3;
-								if (instProfit + incrementValue < targetProfit) {
-									preferences.get(increase).incrementAndGet();
-								} else if (instProfit > targetProfit) {
-									preferences.get(decrease).incrementAndGet();
-								} else {
-									preferences.get(nochange).incrementAndGet();
-								}
-							}
-						}
-
-						switch (issue.getMethod()) {
-						case SINGLE:
-							Object chosen = null;
-							int max = 0;
-							for (Map.Entry<Object, AtomicInteger> pref : preferences
-									.entrySet()) {
-								if (pref.getValue().get() > max) {
-									max = pref.getValue().get();
-									chosen = pref.getKey();
-								}
-							}
-							if (chosen != null) {
-								inst.act(new Vote(AbstractAgent.this, v
-										.getInst(), v.getBallot(), chosen));
-							}
-							break;
-						case PREFERENCE:
-						case RANK_ORDER:
-							Preferences votePref = new Preferences();
-							List<Map.Entry<Object, AtomicInteger>> prefList = new LinkedList<Map.Entry<Object, AtomicInteger>>(
-									preferences.entrySet());
-							Collections
-									.sort(prefList,
-											new Comparator<Map.Entry<Object, AtomicInteger>>() {
-												@Override
-												public int compare(
-														Entry<Object, AtomicInteger> o1,
-														Entry<Object, AtomicInteger> o2) {
-													return o1.getValue().get()
-															- o2.getValue()
-																	.get();
-												}
-											});
-							for (Map.Entry<Object, AtomicInteger> e : prefList) {
-								votePref.addPreference(e.getKey());
-							}
-							inst.act(new Vote(AbstractAgent.this, v.getInst(),
-									v.getBallot(), votePref));
-							break;
-						}
-					}
-				}
-			}
-		}
-
-		@Override
-		public void initialise() {
-			try {
-				pow = inst.getSession().getModule(IPower.class);
-				voting = inst.getSession().getModule(Voting.class);
-				ac = inst.getSession().getModule(AccessControl.class);
-				pay = inst.getSession().getModule(MicroPayments.class);
-			} catch (UnavailableModuleException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		@Override
-		public void onEvent(String type, Object value) {
-		}
-
 	}
 
 }

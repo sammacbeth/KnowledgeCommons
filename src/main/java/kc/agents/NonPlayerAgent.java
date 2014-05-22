@@ -17,8 +17,7 @@ public class NonPlayerAgent extends AbstractAgent {
 		a.addBehaviour(a.new InstitutionalBehaviour());
 		a.addBehaviour(a.new PruneMeasuredBehaviour());
 		a.addBehaviour(a.new OpenBallotsBehaviour());
-		//a.addBehaviour(a.new VoteBehaviour());
-		a.addBehaviour(a.new SubscriptionVote(p));
+		a.addBehaviour(a.new VoteBehaviour(p));
 		return a;
 	}
 

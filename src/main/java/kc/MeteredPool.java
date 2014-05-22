@@ -13,9 +13,10 @@ public class MeteredPool extends Pool {
 	final Map<String, Double> appropriationFees = new HashMap<String, Double>();
 	double payOnAppropriation = 0;
 	double payOnProvision = 0;
-	
+
 	public MeteredPool(Institution inst, Set<String> contribRoles,
-			Set<String> extractRoles, Set<String> removeRoles, ArtifactMatcher artifactMatcher) {
+			Set<String> extractRoles, Set<String> removeRoles,
+			ArtifactMatcher artifactMatcher) {
 		super(inst, contribRoles, extractRoles, removeRoles, artifactMatcher);
 	}
 
@@ -29,6 +30,14 @@ public class MeteredPool extends Pool {
 
 	public double getPayOnProvision() {
 		return payOnProvision;
+	}
+
+	public void setPayOnAppropriation(double payOnAppropriation) {
+		this.payOnAppropriation = payOnAppropriation;
+	}
+
+	public void setPayOnProvision(double payOnProvision) {
+		this.payOnProvision = payOnProvision;
 	}
 
 }

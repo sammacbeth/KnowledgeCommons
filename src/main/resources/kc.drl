@@ -136,7 +136,9 @@ rule "Pay provider on appropriation"
 		Provision($provider : actor, inst == $i, artifact == $art, actor != $appropriator, valid == true)
 		not( FeeIssued( $appropriator, $app, $t ;) )
 	then
-		insert( new Transfer($i, $provider, $pay) );
+		Transfer trans = new Transfer($i, $provider, $pay);
+		trans.setT($t);
+		insert( trans );
 		insert( new FeeIssued($appropriator, $app, $t) );
 end
 
@@ -147,6 +149,8 @@ rule "Pay provider on provision"
 		MeteredPool(inst == $i, payOnProvision > 0, artifacts contains $art, $pay : payOnProvision)
 		not( FeeIssued( $provider, $prov, $t ;) )
 	then
-		insert( new Transfer($i, $provider, $pay) );
+		Transfer trans = new Transfer($i, $provider, $pay);
+		trans.setT($t);
+		insert( trans );
 		insert( new FeeIssued($provider, $prov, $t) );
 end
