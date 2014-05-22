@@ -1,6 +1,5 @@
 package kc.agents;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -9,10 +8,13 @@ import java.util.Queue;
 import java.util.Set;
 
 import kc.Measured;
+import kc.Review;
 import kc.State;
 import kc.Strategy;
-import kc.prediction.GreedyPredictor;
 import kc.prediction.Predictor;
+
+import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
+
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.UnavailableModuleException;
 import uk.ac.imperial.einst.ipower.IPower;
@@ -121,26 +123,52 @@ public class PlayerAgent extends AbstractAgent {
 
 	class MultiPredictorGameplayBehaviour extends GameplayBehaviour {
 
-		Map<Integer, Predictor> options = new HashMap<Integer, Predictor>();
-		private int ind = 0;
-		Predictor strategy;
+		Map<Predictor, DescriptiveStatistics> history = new HashMap<Predictor, DescriptiveStatistics>();
+		int historyLength = 20;
+		double q0 = 0.5;
 
 		double prevAccount = 0;
 
 		final int strategyEvalPeriod = 5;
-		Strategy current = null;
-		Strategy last = null;
+		Predictor last = null;
 		int strategyDuration = 0;
+		boolean review = false;
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor) {
-			this(predictor, new GreedyPredictor(1.0, 0.5, 0.0));
+			this(predictor, 0.5, 20, false);
 		}
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor,
-				Predictor strategy) {
-			super(predictor);
-			this.options.put(ind++, predictor);
-			this.strategy = strategy;
+				boolean review) {
+			this(predictor, 0.5, 20, review);
+		}
+
+		public MultiPredictorGameplayBehaviour(Predictor initialPredictor,
+				double q0, int length, boolean review) {
+			super(initialPredictor);
+			this.q0 = q0;
+			this.historyLength = length;
+			this.review = review;
+			initPredictor(initialPredictor);
+		}
+
+		private void initPredictor(Predictor p) {
+			history.put(p, new DescriptiveStatistics(historyLength));
+			history.get(p).addValue(q0);
+		}
+
+		private Predictor getBestPredictor() {
+			Predictor best = null;
+			double bestScore = 0;
+			for (Map.Entry<Predictor, DescriptiveStatistics> e : history
+					.entrySet()) {
+				double score = e.getValue().getMean();
+				if (bestScore < score) {
+					best = e.getKey();
+					bestScore = score;
+				}
+			}
+			return best;
 		}
 
 		@Override
@@ -150,7 +178,7 @@ public class PlayerAgent extends AbstractAgent {
 
 		@Override
 		public void doBehaviour() {
-			if (current == null || --strategyDuration <= 0) {
+			if (this.predictor == null || --strategyDuration <= 0) {
 				// periodically reassess strategy
 				if (this.predictor != null
 						&& predictor instanceof SlavePredictor) {
@@ -158,8 +186,7 @@ public class PlayerAgent extends AbstractAgent {
 					SlavePredictor sp = (SlavePredictor) this.predictor;
 					decrementRoleUsage(sp.source, "consumer");
 				}
-				current = strategy.actionSelection(State.NONE, getStrategies());
-				this.predictor = options.get(current.getId());
+				this.predictor = getBestPredictor();
 				strategyDuration = strategyEvalPeriod;
 				logger.info("Chosen Predictor is: " + this.predictor);
 
@@ -172,56 +199,38 @@ public class PlayerAgent extends AbstractAgent {
 
 			if (last != null) {
 				double account = game.getScore(getID());
-				strategy.addTrainingData(new Measured(null, State.NONE, current
-						.getId(), account - prevAccount, 0));
+				double delta = account - prevAccount;
+				double lastPay = game.getLastPayoff(getID());
+				if (last instanceof SlavePredictor && review) {
+					reviewed.publish(new Review(PlayerAgent.this,
+							((SlavePredictor) last).delegate, lastPay, lastPay
+									- delta, getTime().intValue()));
+				}
+				history.get(this.last).addValue(delta);
 				prevAccount = account;
 			}
 
-			last = current;
+			this.last = this.predictor;
 			super.doBehaviour();
-		}
-
-		private List<Strategy> getStrategies() {
-			List<Strategy> s = new ArrayList<Strategy>();
-			for (Integer i : options.keySet()) {
-				s.add(new Strategy(i, measure));
-			}
-			return s;
 		}
 
 		@Override
 		public void onEvent(String type, Object value) {
-			if (type.equals("newPredictor") && !options.containsValue(value)) {
-				options.put(ind++, (Predictor) value);
+			if (type.equals("newPredictor")) {
+				initPredictor((Predictor) value);
 			} else if (type.equals("removePredictor")) {
-				Set<Integer> toRemove = new HashSet<Integer>();
-				for (Map.Entry<Integer, Predictor> e : options.entrySet()) {
-					if (e.getValue().equals(value)) {
-						toRemove.add(e.getKey());
-					}
-				}
-				for (int id : toRemove) {
-					options.remove(id);
-					if (current != null && current.getId() == id) {
-						current = null;
-					}
-				}
+				history.remove(value);
 			} else if (type.equals("leaveInstitution")) {
-				Set<Integer> toRemove = new HashSet<Integer>();
-				for (Map.Entry<Integer, Predictor> e : options.entrySet()) {
-					if (e.getValue() instanceof SlavePredictor) {
-						SlavePredictor p = (SlavePredictor) e.getValue();
-						if (p.source.equals(value)) {
-							toRemove.add(e.getKey());
+				Set<Predictor> toRemove = new HashSet<Predictor>();
+				for (Predictor p : history.keySet()) {
+					if (p instanceof SlavePredictor) {
+						SlavePredictor s = (SlavePredictor) p;
+						if (s.source.equals(value)) {
+							toRemove.add(p);
 						}
 					}
 				}
-				for (int id : toRemove) {
-					options.remove(id);
-					if (current != null && current.getId() == id) {
-						current = null;
-					}
-				}
+				history.keySet().removeAll(toRemove);
 			}
 		}
 

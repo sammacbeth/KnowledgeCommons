@@ -14,6 +14,7 @@ import kc.Game;
 import kc.GameSimulation;
 import kc.InstitutionService;
 import kc.Measured;
+import kc.Review;
 import kc.choice.SubscriptionVote;
 import kc.prediction.Predictor;
 import kc.util.MultiUserQueue;
@@ -59,6 +60,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 	List<Behaviour> behaviours = new LinkedList<Behaviour>();
 
 	MultiUserQueue<Measured> measured = new MultiUserQueue<Measured>();
+	MultiUserQueue<Review> reviewed = new MultiUserQueue<Review>();
 
 	Map<Pair<Institution, String>, AtomicInteger> roleUsage = new HashMap<Pair<Institution, String>, AtomicInteger>();
 

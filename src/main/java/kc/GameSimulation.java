@@ -123,8 +123,9 @@ public class GameSimulation extends InjectedSimulation {
 
 		// banditExprSetup(s);
 		// facilityExpr(s);
-		//facilitySubExpr(s);
-		subCollectiveExpr(s);
+		// facilitySubExpr(s);
+		// subCollectiveExpr(s);
+		payForProvisions(s);
 	}
 
 	@EventListener
@@ -232,8 +233,10 @@ public class GameSimulation extends InjectedSimulation {
 				.addFacility(facilitySunk, facilityFixed,
 						facilityMarginalStorage, facilityMarginalTrans).build();
 		for (int n = 0; n < gathererLimit; n++) {
-			Profile pro = n < greedyConsumers ? Profile.GREEDY : consumerProfile;
-			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor(), pro);
+			Profile pro = n < greedyConsumers ? Profile.GREEDY
+					: consumerProfile;
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor(),
+					pro);
 			addAgent(s, ag, 10, i, "gatherer", "consumer");
 		}
 
@@ -245,6 +248,29 @@ public class GameSimulation extends InjectedSimulation {
 				0, null);
 		addAgent(s, PlayerAgent.knowledgePlayer("rand", badPredictor()), 0,
 				null);
+	}
+
+	void payForProvisions(Scenario s) {
+		Institution i = new InstitutionBuilder(session, "i1", 100, "initiator")
+				.addMeasuredPool()
+				.end()
+				.addPredictorPool()
+				.setPayOnAppropriation(0.15)
+				.withFee("consumer", 0.15)
+				.end()
+				.addFacility(facilitySunk, facilityFixed,
+						facilityMarginalStorage, facilityMarginalTrans).build();
+
+		for (int n = 0; n < gathererLimit; n++) {
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor());
+			addAgent(s, ag, 10, i, "gatherer", "consumer");
+		}
+		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
+				goodPredictor("a1"), analystProfile);
+		addAgent(s, ag, 0, i, "analyst", "initiator", "manager");
+
+		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
+				0, null);
 	}
 
 	Predictor badPredictor() {

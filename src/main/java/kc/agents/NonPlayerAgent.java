@@ -9,7 +9,8 @@ public class NonPlayerAgent extends AbstractAgent {
 		super(Random.randomUUID(), name);
 	}
 
-	public static NonPlayerAgent analystAgent(String name, Predictor predictor, Profile p) {
+	public static NonPlayerAgent analystAgent(String name, Predictor predictor,
+			Profile p) {
 		NonPlayerAgent a = new NonPlayerAgent(name);
 		a.addBehaviour(a.new AppropriateMeasuredBehaviour());
 		a.addBehaviour(a.new ProvisionPredictorBehaviour(predictor));

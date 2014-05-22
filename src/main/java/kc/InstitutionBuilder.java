@@ -34,7 +34,7 @@ public class InstitutionBuilder {
 			Predictor.class);
 
 	public InstitutionBuilder(EInstSession session, String name,
-			double borrowLimit, String...payRoles) {
+			double borrowLimit, String... payRoles) {
 		super();
 		this.session = session;
 		inst = new DataInstitution(name, borrowLimit, payRoles);
@@ -116,12 +116,12 @@ public class InstitutionBuilder {
 			session.insert(issue);
 			return this;
 		}
-		
+
 		public PoolBuilder setPayOnProvision(double payOnProvision) {
 			pool.payOnProvision = payOnProvision;
 			return this;
 		}
-		
+
 		public PoolBuilder setPayOnAppropriation(double payOnAppropriation) {
 			pool.payOnAppropriation = payOnAppropriation;
 			return this;

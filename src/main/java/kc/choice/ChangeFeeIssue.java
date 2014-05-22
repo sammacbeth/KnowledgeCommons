@@ -8,11 +8,12 @@ import uk.ac.imperial.einst.vote.VoteMethod;
 public abstract class ChangeFeeIssue extends FeeIssue {
 
 	protected static Object[] options = new Integer[] { -1, 0, 1 };
-	
-	protected ChangeFeeIssue(Institution inst, String name, Set<String> cfvRoles,
-			Set<String> voteRoles, VoteMethod method, String wdm,
-			Set<String> roles, double incrementValue) {
-		super(inst, name, cfvRoles, voteRoles, method, wdm, options, roles, incrementValue);
+
+	protected ChangeFeeIssue(Institution inst, String name,
+			Set<String> cfvRoles, Set<String> voteRoles, VoteMethod method,
+			String wdm, Set<String> roles, double incrementValue) {
+		super(inst, name, cfvRoles, voteRoles, method, wdm, options, roles,
+				incrementValue);
 	}
 
 	public void updateFee(Object winner) {
@@ -33,5 +34,5 @@ public abstract class ChangeFeeIssue extends FeeIssue {
 		}
 		setFee(current);
 	}
-	
+
 }

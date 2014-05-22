@@ -15,16 +15,16 @@ public abstract class SetFeeIssue extends FeeIssue {
 		double v = min;
 		for (int i = 0; i < options.length; i++) {
 			options[i] = Math.min(v, max);
-			v += Math.round(inc*100)/100.0;
+			v += Math.round(inc * 100) / 100.0;
 		}
 		return options;
 	}
 
 	protected SetFeeIssue(Institution inst, String name, Set<String> cfvRoles,
-			Set<String> voteRoles, VoteMethod method, String wdm, Set<String> roles, double min,
-			double max, double increments) {
-		super(inst, name, cfvRoles, voteRoles, method, wdm,
-				createOptions(min, max, increments), roles, increments);
+			Set<String> voteRoles, VoteMethod method, String wdm,
+			Set<String> roles, double min, double max, double increments) {
+		super(inst, name, cfvRoles, voteRoles, method, wdm, createOptions(min,
+				max, increments), roles, increments);
 		this.minValue = min;
 		this.maxValue = max;
 	}

@@ -88,6 +88,7 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 			a = accounting().createAccount(req.getParticipant(), 0, 0);
 		}
 		sharedState.create("account", req.getParticipantID(), new Double(0));
+		sharedState.create("utility", req.getParticipantID(), new Double(0));
 		sharedState.create("measured", req.getParticipantID(),
 				new LinkedList<Measured>());
 		names.put(req.getParticipantID(), req.getParticipant().getName());
@@ -113,7 +114,7 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 
 					logger.info(s + " got reward: " + u + "; " + a);
 					// sharedstate way
-					//double account = (Double) state;
+					// double account = (Double) state;
 					if (sto != null) {
 						sto.insertPlayerGameRound(time, names.get(actor),
 								s.getId(), u, account);
@@ -121,6 +122,7 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 					return account;
 				}
 			});
+			this.sharedState.change("utility", actor, u);
 
 			if (s.measure) {
 				getMeasuredQueue(actor).publish(
@@ -147,6 +149,11 @@ public abstract class Game extends EnvironmentService implements ActionHandler {
 			logger.warn(score);
 		}
 		return score;
+	}
+
+	public double getLastPayoff(UUID id) {
+		double u = (Double) this.sharedState.get("utility", id);
+		return u;
 	}
 
 	public double getMeasuringCost() {
