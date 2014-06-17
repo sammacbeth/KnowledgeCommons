@@ -11,7 +11,7 @@ public class PoolAppropriatePay extends ChangeFeeIssue {
 	final MeteredPool pool;
 	boolean paidByAppropriators = false;
 
-	protected PoolAppropriatePay(MeteredPool pool, Set<String> cfvRoles,
+	public PoolAppropriatePay(MeteredPool pool, Set<String> cfvRoles,
 			Set<String> voteRoles, Set<String> roles, double incrementValue,
 			boolean paidByAppropriators) {
 		super(pool.getInst(), "poolpay-" + pool.toString(), cfvRoles,

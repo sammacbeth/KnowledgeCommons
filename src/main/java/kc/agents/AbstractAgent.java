@@ -15,6 +15,7 @@ import kc.GameSimulation;
 import kc.InstitutionService;
 import kc.Measured;
 import kc.Review;
+import kc.choice.AppropriatePayVote;
 import kc.choice.SubscriptionVote;
 import kc.prediction.Predictor;
 import kc.util.MultiUserQueue;
@@ -387,6 +388,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		Voting v;
 		AccessControl ac;
 		MicroPayments pay;
+		ProvisionAppropriationSystem pas;
 		List<BallotHandler> handlers = new LinkedList<BallotHandler>();
 		Profile profile;
 
@@ -416,11 +418,15 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 				v = inst.getSession().getModule(Voting.class);
 				ac = inst.getSession().getModule(AccessControl.class);
 				pay = inst.getSession().getModule(MicroPayments.class);
+				pas = inst.getSession().getModule(
+						ProvisionAppropriationSystem.class);
 			} catch (UnavailableModuleException e) {
 				throw new RuntimeException(e);
 			}
 			handlers.add(new SubscriptionVote(AbstractAgent.this, this.profile,
 					pow, v, ac, pay));
+			handlers.add(new AppropriatePayVote(AbstractAgent.this,
+					this.profile, pas, pay, ac));
 		}
 
 		@Override

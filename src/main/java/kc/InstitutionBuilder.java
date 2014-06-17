@@ -3,12 +3,14 @@ package kc;
 import java.util.HashSet;
 import java.util.Set;
 
+import kc.choice.PoolAppropriatePay;
 import kc.choice.PoolFee;
 import kc.choice.SubscriptionFee;
 import kc.prediction.Predictor;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.access.RoleOf;
+import uk.ac.imperial.einst.access.Roles;
 import uk.ac.imperial.einst.resource.ArtifactMatcher;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
@@ -22,16 +24,18 @@ public class InstitutionBuilder {
 	final DataInstitution inst;
 	Set<Pool> pools = new HashSet<Pool>();
 
-	Set<String> gatherers = RoleOf.roleSet("gatherer");
-	Set<String> analysts = RoleOf.roleSet("analyst");
-	Set<String> initiator = RoleOf.roleSet("initiator");
-	Set<String> consumers = RoleOf.roleSet("consumer");
-	Set<String> managers = RoleOf.roleSet("manager");
+	Set<String> gatherers = Roles.set("gatherer");
+	Set<String> analysts = Roles.set("analyst");
+	Set<String> initiator = Roles.set("initiator");
+	Set<String> consumers = Roles.set("consumer");
+	Set<String> managers = Roles.set("manager");
+	Set<String> evaluator = Roles.set("evaluator");
 
 	static ArtifactMatcher measuredMatcher = new ArtifactTypeMatcher(
 			Measured.class);
 	static ArtifactMatcher predictorMatcher = new ArtifactTypeMatcher(
 			Predictor.class);
+	static ArtifactMatcher reviewMatcher = new ArtifactTypeMatcher(Review.class);
 
 	public InstitutionBuilder(EInstSession session, String name,
 			double borrowLimit, String... payRoles) {
@@ -82,6 +86,11 @@ public class InstitutionBuilder {
 		return addPredictorPool().withFee("consumer", fee).end();
 	}
 
+	public PoolBuilder addReviewPool() {
+		return addPool(evaluator, Roles.union(evaluator, consumers), managers,
+				reviewMatcher);
+	}
+
 	public InstitutionBuilder addFacility(double sunk, double fixed,
 			double marginalStorage, double marginalTrans) {
 		session.insert(new Facility(inst, pools, sunk, fixed, marginalStorage,
@@ -124,6 +133,16 @@ public class InstitutionBuilder {
 
 		public PoolBuilder setPayOnAppropriation(double payOnAppropriation) {
 			pool.payOnAppropriation = payOnAppropriation;
+			return this;
+		}
+
+		public PoolBuilder dynamicPayOnAppropriation(Set<String> roles,
+				double fee, Set<String> cfv, Set<String> vote,
+				double incrementValue, boolean paidByAppropriators) {
+			PoolAppropriatePay issue = new PoolAppropriatePay(pool, cfv, vote,
+					roles, incrementValue, paidByAppropriators);
+			issue.setFee(fee);
+			session.insert(issue);
 			return this;
 		}
 

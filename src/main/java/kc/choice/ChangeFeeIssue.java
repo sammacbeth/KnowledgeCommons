@@ -7,7 +7,12 @@ import uk.ac.imperial.einst.vote.VoteMethod;
 
 public abstract class ChangeFeeIssue extends FeeIssue {
 
-	protected static Object[] options = new Integer[] { -1, 0, 1 };
+	public static int DECREASE = -1;
+	public static int NOCHANGE = 0;
+	public static int INCREASE = 1;
+
+	protected static Object[] options = new Integer[] { DECREASE, NOCHANGE,
+			INCREASE };
 
 	protected ChangeFeeIssue(Institution inst, String name,
 			Set<String> cfvRoles, Set<String> voteRoles, VoteMethod method,
