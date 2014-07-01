@@ -3,6 +3,8 @@ package kc;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.management.relation.Role;
+
 import kc.agents.AbstractAgent;
 import kc.agents.NonPlayerAgent;
 import kc.agents.PlayerAgent;
@@ -14,6 +16,7 @@ import kc.prediction.RandomPredictor;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.access.RoleOf;
+import uk.ac.imperial.einst.access.Roles;
 import uk.ac.imperial.einst.micropay.Account;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
 import uk.ac.imperial.einst.resource.Pool;
@@ -59,6 +62,8 @@ public class GameSimulation extends InjectedSimulation {
 	public Profile analystProfile = Profile.SUSTAINABLE;
 	@Parameter(name = "consumerProfile", optional = true)
 	public Profile consumerProfile = Profile.SUSTAINABLE;
+	@Parameter(name = "initiatorProfile", optional = true)
+	public Profile initiatorProfile = Profile.SUSTAINABLE;
 	@Parameter(name = "greedyConsumers", optional = true)
 	public int greedyConsumers = 0;
 	@Parameter(name = "prune", optional = true)
@@ -74,6 +79,7 @@ public class GameSimulation extends InjectedSimulation {
 
 	public GameSimulation(Set<AbstractModule> modules) {
 		super(modules);
+		EInstSession.USE_KB_CACHE = true;
 	}
 
 	@Inject
@@ -255,19 +261,27 @@ public class GameSimulation extends InjectedSimulation {
 				.addMeasuredPool()
 				.end()
 				.addPredictorPool()
-				.setPayOnAppropriation(0.15)
-				.withFee("consumer", 0.15)
+				// .setPayOnAppropriation(0.15)
+				// .withFee("consumer", 0.15)
+				.dynamicPayOnAppropriation(Roles.set("consumer"), 0.4,
+						Roles.set("initiator"), Roles.set("analyst","consumer"), 0.1,
+						true)
 				.end()
+				.addDynamicSubscription(Roles.set("consumer"), 0.0,
+						Roles.set("initiator"),
+						Roles.set("initiator"), 0.1)
 				.addFacility(facilitySunk, facilityFixed,
 						facilityMarginalStorage, facilityMarginalTrans).build();
 
 		for (int n = 0; n < gathererLimit; n++) {
-			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor());
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor(), consumerProfile);
 			addAgent(s, ag, 10, i, "gatherer", "consumer");
 		}
 		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
 				goodPredictor("a1"), analystProfile);
-		addAgent(s, ag, 0, i, "analyst", "initiator", "manager");
+		addAgent(s, ag, 0, i, "analyst");
+		AbstractAgent initiator = NonPlayerAgent.initiatorAgent("c1", initiatorProfile);
+		addAgent(s, initiator, 0, i, "initiator", "manager");
 
 		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
 				0, null);

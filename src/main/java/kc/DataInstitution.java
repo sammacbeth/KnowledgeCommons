@@ -29,7 +29,7 @@ public class DataInstitution implements Institution {
 	public String toString() {
 		return name;
 	}
-	
+
 	public Set<String> getPayRoles() {
 		return payRoles;
 	}

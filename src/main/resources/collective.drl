@@ -1,5 +1,6 @@
 import kc.choice.PoolFee
 import kc.choice.SubscriptionFee
+import kc.choice.PoolAppropriatePay
 
 import uk.ac.imperial.einst.vote.Declare
 
@@ -23,4 +24,13 @@ rule "Change Subscription fees"
 		$issue.updateFee($w);
 		// trigger recache of inst
 		modify($i) {}
+end
+
+rule "Change Appropriation fee"
+	when
+		$issue : PoolAppropriatePay($p : pool)
+		Declare( ballot.issue == $issue, $w : winner, valid == true )
+	then
+		$issue.updateFee($w);
+		modify($p) {}
 end

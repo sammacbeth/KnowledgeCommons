@@ -54,8 +54,7 @@ public class KCStorage extends SqlStorage {
 			createTable.execute("CREATE TABLE IF NOT EXISTS initialState "
 					+ "(`simId` bigint(20) NOT NULL, "
 					+ "`object` VARCHAR(255) NOT NULL, "
-					+ "PRIMARY KEY(`simId`,`object`), "
-					+ "INDEX(`simId`));");
+					+ "PRIMARY KEY(`simId`,`object`), " + "INDEX(`simId`));");
 
 			gameInsert = conn
 					.prepareStatement("INSERT INTO nArmedBandit VALUES(?,?,?,?);");
@@ -107,7 +106,7 @@ public class KCStorage extends SqlStorage {
 					.prepareStatement("INSERT INTO droolsSnapshot VALUES(?,?,?);");
 			int count = 0;
 			for (Object o : objects) {
-				if(++count > 1000) {
+				if (++count > 1000) {
 					logSnapshotInsert.executeBatch();
 					logSnapshotInsert.clearBatch();
 				}

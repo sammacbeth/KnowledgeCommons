@@ -86,7 +86,7 @@ public abstract class ReinforcementPredictor extends AbstractPredictor {
 
 		@Override
 		public String toString() {
-			return "WeightedAverage[alpha="+ alpha + "]";
+			return "WeightedAverage[alpha=" + alpha + "]";
 		}
 
 	}

@@ -12,7 +12,7 @@ public class CollectiveChoice implements Module {
 	@Override
 	public void initialise(EInstSession eInstSession,
 			StatefulKnowledgeSession session) {
-		
+
 	}
 
 }

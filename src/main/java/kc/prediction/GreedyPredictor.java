@@ -39,6 +39,7 @@ public class GreedyPredictor extends ReinforcementPredictor {
 
 	@Override
 	public String toString() {
-		return "GreedyPredictor [q0="+ q0 +", step="+ stepsize +", epsilon=" + epsilon + "]";
+		return "GreedyPredictor [q0=" + q0 + ", step=" + stepsize
+				+ ", epsilon=" + epsilon + "]";
 	}
 }

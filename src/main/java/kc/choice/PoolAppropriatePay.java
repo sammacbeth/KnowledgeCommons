@@ -36,4 +36,8 @@ public class PoolAppropriatePay extends ChangeFeeIssue {
 		}
 	}
 
+	public MeteredPool getPool() {
+		return pool;
+	}
+
 }

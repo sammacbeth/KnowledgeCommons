@@ -62,10 +62,7 @@ public class AppropriatePayVote implements BallotHandler {
 				choice = ChangeFeeIssue.INCREASE;
 				break;
 			case PROFITABLE:
-				final double profitTarget = 0.3;
-				if (profit < profitTarget)
-					choice = ChangeFeeIssue.INCREASE;
-				else if (current > profitTarget + 1)
+				if(current > 0.1)
 					choice = ChangeFeeIssue.DECREASE;
 				else
 					choice = ChangeFeeIssue.NOCHANGE;
@@ -87,7 +84,7 @@ public class AppropriatePayVote implements BallotHandler {
 					// others are paying, set a fair rate
 					if (profit < 0)
 						choice = ChangeFeeIssue.INCREASE;
-					else if (profit > 0.2)
+					else if (profit > 1.0)
 						choice = ChangeFeeIssue.DECREASE;
 					else
 						choice = ChangeFeeIssue.NOCHANGE;
@@ -100,7 +97,8 @@ public class AppropriatePayVote implements BallotHandler {
 				choice = ChangeFeeIssue.DECREASE;
 				break;
 			case PROFITABLE:
-				choice = ChangeFeeIssue.DECREASE;
+				if(current > 0.2)
+					choice = ChangeFeeIssue.DECREASE;
 				break;
 			case SUSTAINABLE:
 				if (!issue.paidByAppropriators) {

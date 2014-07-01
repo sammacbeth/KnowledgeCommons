@@ -246,7 +246,8 @@ public class KCCLI extends Presage2CLI {
 
 	private Experiment subCollective() {
 		Experiment sub = new ParameterSweep("subcollective",
-				"subcol:%{p.analystProfile}:%{p.greedyConsumers}", "kc.GameSimulation", 100)
+				"subcol:%{p.analystProfile}:%{p.greedyConsumers}",
+				"kc.GameSimulation", 100)
 				.addFixedParameter("facilityFixed", 2.0)
 				.addFixedParameter("facilityMarginalTrans", 0.05)
 				.addFixedParameter("gameClass", "kc.games.KnowledgeGame")
