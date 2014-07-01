@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import kc.KnowledgeCommons;
 import kc.Measured;
 import kc.Review;
 import kc.State;
@@ -85,6 +86,9 @@ public class PlayerAgent extends AbstractAgent {
 			Predictor defaultPredictor, Profile profile) {
 		PlayerAgent a = dumbPlayer(name, defaultPredictor);
 		a.addBehaviour(a.new VoteBehaviour(profile));
+		if (profile != Profile.SUSTAINABLE) {
+			a.addBehaviour(a.new MeasureBehaviour());
+		}
 		return a;
 	}
 
@@ -117,6 +121,9 @@ public class PlayerAgent extends AbstractAgent {
 
 		@Override
 		public void onEvent(String type, Object value) {
+			if (type.equals("measure")) {
+				this.measure = Boolean.parseBoolean(value.toString());
+			}
 		}
 
 	}
@@ -398,6 +405,49 @@ public class PlayerAgent extends AbstractAgent {
 
 		private PlayerAgent getOuterType() {
 			return PlayerAgent.this;
+		}
+
+	}
+
+	class MeasureBehaviour extends PowerReactiveBehaviour {
+
+		KnowledgeCommons kc;
+		boolean measure = true;
+
+		public MeasureBehaviour() {
+			super(new Provision(PlayerAgent.this, null, new Measured()));
+		}
+
+		@Override
+		public void initialise() {
+			super.initialise();
+			try {
+				kc = inst.getSession().getModule(KnowledgeCommons.class);
+			} catch (UnavailableModuleException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void doBehaviour() {
+			super.doBehaviour();
+			for (Institution i : institutions) {
+				boolean measureProfitable = game.getMeasuringCost() < kc
+						.getProvisionPay(i, new Measured());
+				if (measure && !measureProfitable) {
+					measure = false;
+					sendEvent("measure", measure);
+				} else if (!measure && measureProfitable) {
+					measure = true;
+					sendEvent("measure", measure);
+				}
+			}
+		}
+
+		@Override
+		public void onEvent(String type, Object value) {
+			// TODO Auto-generated method stub
+
 		}
 
 	}

@@ -1,8 +1,11 @@
 package kc;
 
 import org.drools.runtime.StatefulKnowledgeSession;
+import org.drools.runtime.rule.QueryResults;
+import org.drools.runtime.rule.QueryResultsRow;
 
 import uk.ac.imperial.einst.EInstSession;
+import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.Module;
 import uk.ac.imperial.einst.RuleResources;
 
@@ -19,6 +22,15 @@ public class KnowledgeCommons implements Module {
 
 	public boolean isBankrupt(DataInstitution i) {
 		return this.session.getQueryResults("isBankrupt", i).size() > 0;
+	}
+
+	public double getProvisionPay(Institution i, Object action) {
+		QueryResults res = this.session.getQueryResults("isBankrupt", i);
+		if(res.size() == 1) {
+			QueryResultsRow row = res.iterator().next();
+			return (Double) row.get("$pay");
+		}
+		return 0;
 	}
 
 }

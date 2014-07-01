@@ -34,6 +34,10 @@ query isBankrupt(i)
 	Bankrupt(i;)
 end
 
+query getProvisionPay(Institution i, Object artifact)
+	MeteredPool(inst == i, artifactMatcher.matches(artifact), $pay : payOnProvision)
+end
+
 rule "Institution Bankruptcy"
 	salience -100
 	when
