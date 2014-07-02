@@ -45,6 +45,7 @@ public class KCCLI extends Presage2CLI {
 		addExperiment(experiments, facilityCosts());
 		addExperiment(experiments, facilityCostsSub());
 		addExperiment(experiments, subCollective());
+		addExperiment(experiments, building());
 		// Map<String, String> experiments = new HashMap<String, String>();
 		// experiments.put("bandits", "Get properties of the bandit game.");
 		// experiments.put("pseudo", "Get properties of the pseudo game.");
@@ -259,5 +260,27 @@ public class KCCLI extends Presage2CLI {
 						Profile.SUSTAINABLE.name())
 				.addRangeParameter("greedyConsumers", 0, 10, 1);
 		return sub;
+	}
+
+	private Experiment building() {
+		/*Experiment building = new ParameterSweep("building",
+				"basic:%{p.measuringCost}:%{p.facilityCostProfile}:%{p.initiatorProfile}",
+				"kc.FullSimulation", 200)
+				.addArrayParameter("facilityCostProfile", 0, 1)
+				.addArrayParameter("measuringCost", 0)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 100);*/
+		Experiment building = new ParameterSweep("building",
+				"basic:%{p.measuringCost}:%{p.facilityCostProfile}:%{p.initiatorProfile}",
+				"kc.FullSimulation", 200)
+				.addArrayParameter("facilityCostProfile", 0, 1)
+				.addArrayParameter("measuringCost", 0)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 100)
+				.addFixedParameter("subscription", true)
+				.addArrayParameter("initiatorProfile",
+						Profile.SUSTAINABLE.name(), Profile.PROFITABLE.name(),
+						Profile.GREEDY.name());
+		return building;
 	}
 }

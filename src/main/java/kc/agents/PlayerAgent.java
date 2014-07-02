@@ -160,13 +160,15 @@ public class PlayerAgent extends AbstractAgent {
 		}
 
 		private void initPredictor(Predictor p) {
-			history.put(p, new DescriptiveStatistics(historyLength));
-			history.get(p).addValue(q0);
+			if(!history.containsKey(p)) {
+				history.put(p, new DescriptiveStatistics(historyLength));
+				history.get(p).addValue(q0);
+			}
 		}
 
 		private Predictor getBestPredictor() {
 			Predictor best = null;
-			double bestScore = 0;
+			double bestScore = -1;
 			for (Map.Entry<Predictor, DescriptiveStatistics> e : history
 					.entrySet()) {
 				double score = e.getValue().getMean();
@@ -204,8 +206,8 @@ public class PlayerAgent extends AbstractAgent {
 				}
 			}
 
-			if (last != null) {
-				double account = game.getScore(getID());
+			double account = game.getScore(getID());
+			if (history.get(this.last) != null) {
 				double delta = account - prevAccount;
 				double lastPay = game.getLastPayoff(getID());
 				if (last instanceof SlavePredictor && review) {
@@ -214,8 +216,8 @@ public class PlayerAgent extends AbstractAgent {
 									- delta, getTime().intValue()));
 				}
 				history.get(this.last).addValue(delta);
-				prevAccount = account;
 			}
+			prevAccount = account;
 
 			this.last = this.predictor;
 			super.doBehaviour();
@@ -227,6 +229,8 @@ public class PlayerAgent extends AbstractAgent {
 				initPredictor((Predictor) value);
 			} else if (type.equals("removePredictor")) {
 				history.remove(value);
+				if (this.predictor.equals(value))
+					this.predictor = null;
 			} else if (type.equals("leaveInstitution")) {
 				Set<Predictor> toRemove = new HashSet<Predictor>();
 				for (Predictor p : history.keySet()) {
@@ -239,6 +243,7 @@ public class PlayerAgent extends AbstractAgent {
 				}
 				history.keySet().removeAll(toRemove);
 			}
+			super.onEvent(type, value);
 		}
 
 	}

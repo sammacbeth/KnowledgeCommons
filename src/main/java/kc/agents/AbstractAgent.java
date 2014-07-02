@@ -330,7 +330,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 
 	class OpenBallotsBehaviour extends PowerReactiveBehaviour {
 
-		int ballotPeriod = 8;
+		int ballotPeriod = 10;
 		int ballotDuration = 2;
 		Voting v;
 		Set<Issue> ballotWanted = new HashSet<Issue>();

@@ -264,23 +264,24 @@ public class GameSimulation extends InjectedSimulation {
 				// .setPayOnAppropriation(0.15)
 				// .withFee("consumer", 0.15)
 				.dynamicPayOnAppropriation(Roles.set("consumer"), 0.4,
-						Roles.set("initiator"), Roles.set("analyst","consumer"), 0.1,
-						true)
+						Roles.set("initiator"),
+						Roles.set("analyst", "consumer"), 0.1, true)
 				.end()
 				.addDynamicSubscription(Roles.set("consumer"), 0.0,
-						Roles.set("initiator"),
-						Roles.set("initiator"), 0.1)
+						Roles.set("initiator"), Roles.set("initiator"), 0.1)
 				.addFacility(facilitySunk, facilityFixed,
 						facilityMarginalStorage, facilityMarginalTrans).build();
 
 		for (int n = 0; n < gathererLimit; n++) {
-			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor(), consumerProfile);
+			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor(),
+					consumerProfile);
 			addAgent(s, ag, 10, i, "gatherer", "consumer");
 		}
 		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
 				goodPredictor("a1"), analystProfile);
 		addAgent(s, ag, 0, i, "analyst");
-		AbstractAgent initiator = NonPlayerAgent.initiatorAgent("c1", initiatorProfile);
+		AbstractAgent initiator = NonPlayerAgent.initiatorAgent("c1",
+				initiatorProfile);
 		addAgent(s, initiator, 0, i, "initiator", "manager");
 
 		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
