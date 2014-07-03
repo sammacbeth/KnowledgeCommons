@@ -140,6 +140,8 @@ public class PlayerAgent extends AbstractAgent {
 		Predictor last = null;
 		int strategyDuration = 0;
 		boolean review = false;
+		
+		Predictor fallback;
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor) {
 			this(predictor, 0.5, 20, false);
@@ -157,6 +159,7 @@ public class PlayerAgent extends AbstractAgent {
 			this.historyLength = length;
 			this.review = review;
 			initPredictor(initialPredictor);
+			this.fallback = initialPredictor;
 		}
 
 		private void initPredictor(Predictor p) {
@@ -167,8 +170,8 @@ public class PlayerAgent extends AbstractAgent {
 		}
 
 		private Predictor getBestPredictor() {
-			Predictor best = null;
-			double bestScore = -1;
+			Predictor best = fallback;
+			double bestScore = 0;
 			for (Map.Entry<Predictor, DescriptiveStatistics> e : history
 					.entrySet()) {
 				double score = e.getValue().getMean();
@@ -194,6 +197,7 @@ public class PlayerAgent extends AbstractAgent {
 					// decrement usage of this role
 					SlavePredictor sp = (SlavePredictor) this.predictor;
 					decrementRoleUsage(sp.source, "consumer");
+					decrementRoleUsage(sp.source, "gatherer");
 				}
 				this.predictor = getBestPredictor();
 				strategyDuration = strategyEvalPeriod;
@@ -203,6 +207,7 @@ public class PlayerAgent extends AbstractAgent {
 					// increment usage of this role
 					SlavePredictor sp = (SlavePredictor) this.predictor;
 					incrementRoleUsage(sp.source, "consumer");
+					incrementRoleUsage(sp.source, "gatherer");
 				}
 			}
 

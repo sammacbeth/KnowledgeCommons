@@ -24,8 +24,8 @@ public class KnowledgeCommons implements Module {
 		return this.session.getQueryResults("isBankrupt", i).size() > 0;
 	}
 
-	public double getProvisionPay(Institution i, Object action) {
-		QueryResults res = this.session.getQueryResults("isBankrupt", i);
+	public double getProvisionPay(Institution i, Object artifact) {
+		QueryResults res = this.session.getQueryResults("getProvisionPay", i, artifact);
 		if(res.size() == 1) {
 			QueryResultsRow row = res.iterator().next();
 			return (Double) row.get("$pay");

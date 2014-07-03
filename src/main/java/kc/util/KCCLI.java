@@ -263,24 +263,43 @@ public class KCCLI extends Presage2CLI {
 	}
 
 	private Experiment building() {
-		/*Experiment building = new ParameterSweep("building",
-				"basic:%{p.measuringCost}:%{p.facilityCostProfile}:%{p.initiatorProfile}",
+		Experiment basic = new ParameterSweep("basic",
+				"basic:%{p.facilityCostProfile}", "kc.FullSimulation", 200)
+				.addArrayParameter("measuringCost", 0);
+		Experiment sub = new ParameterSweep("sub",
+				"sub:%{p.facilityCostProfile}:%{p.initiatorProfile}",
 				"kc.FullSimulation", 200)
-				.addArrayParameter("facilityCostProfile", 0, 1)
 				.addArrayParameter("measuringCost", 0)
-				.addFixedParameter("nProsumers", 10)
-				.addFixedParameter("initiatorCredit", 100);*/
-		Experiment building = new ParameterSweep("building",
-				"basic:%{p.measuringCost}:%{p.facilityCostProfile}:%{p.initiatorProfile}",
-				"kc.FullSimulation", 200)
-				.addArrayParameter("facilityCostProfile", 0, 1)
-				.addArrayParameter("measuringCost", 0)
-				.addFixedParameter("nProsumers", 10)
-				.addFixedParameter("initiatorCredit", 100)
 				.addFixedParameter("subscription", true)
 				.addArrayParameter("initiatorProfile",
 						Profile.SUSTAINABLE.name(), Profile.PROFITABLE.name(),
 						Profile.GREEDY.name());
-		return building;
+		Experiment payApp = new ParameterSweep(
+				"payApp",
+				"payApp:%{p.facilityCostProfile}:%{p.initiatorProfile}:%{p.separateAnalyst}",
+				"kc.FullSimulation", 200)
+				.addArrayParameter("measuringCost", 0)
+				.addFixedParameter("subscription", true)
+				.addFixedParameter("payOnApp", true)
+				.addArrayParameter("initiatorProfile",
+						Profile.SUSTAINABLE.name(), Profile.PROFITABLE.name(),
+						Profile.GREEDY.name())
+				.addArrayParameter("separateAnalyst", true, false);
+		Experiment measureCost = new ParameterSweep(
+				"measureCost",
+				"mcost:%{p.facilityCostProfile}:%{p.initiatorProfile}:%{p.nNcProsumers}",
+				"kc.FullSimulation", 200)
+				.addArrayParameter("measuringCost", 0.1)
+				.addFixedParameter("subscription", true)
+				.addFixedParameter("payOnApp", true)
+				.addFixedParameter("initiatorProfile",
+						Profile.SUSTAINABLE.name())
+				.addArrayParameter("nNcProsumers", 1, 5, 9);
+		Experiment multi = new MultiExperiment("building", "", basic, sub,
+				payApp, measureCost)
+				.addArrayParameter("facilityCostProfile", 0, 1)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0);
+		return multi;
 	}
 }

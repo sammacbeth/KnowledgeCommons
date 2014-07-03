@@ -451,15 +451,16 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		@Override
 		public void doBehaviour() {
 			// leave institutions we're not using
-			if (getTime().intValue() % 3 == 0) {
+			int t = getTime().intValue();
+			if (t > 50 && t % 3 == 0) {
 				for (Map.Entry<Pair<Institution, String>, AtomicInteger> e : roleUsage
 						.entrySet()) {
 					Institution i = e.getKey().getLeft();
 					String role = e.getKey().getRight();
+					Set<String> roles = ac.getRoles(AbstractAgent.this, i);
 					// resign from instutions we're not using
 					if (e.getValue().get() == 0
-							&& ac.getRoles(AbstractAgent.this, i)
-									.contains(role)) {
+							&& roles.contains(role)) {
 						inst.act(new Resign(AbstractAgent.this, i, role));
 						sendEvent("leaveInstitution", i);
 					}

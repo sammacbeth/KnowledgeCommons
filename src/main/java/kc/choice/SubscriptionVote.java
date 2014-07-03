@@ -111,7 +111,7 @@ public class SubscriptionVote implements BallotHandler {
 			if (initiator) {
 				// aim to take 0.6 per agent per timestep.
 				double baseProfit = instProfit - issue.getFee() * numPayers;
-				double targetProfit = Math.max(baseProfit + numPayers * 0.6, 0);
+				double targetProfit = Math.max(baseProfit + numPayers * 0.5, 0);
 				Map<Object, Double> projectedProfit = new HashMap<Object, Double>();
 				for (Object o : options) {
 					double fee = Double.parseDouble(o.toString());

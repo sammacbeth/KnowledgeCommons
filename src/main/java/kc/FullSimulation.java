@@ -3,6 +3,7 @@ package kc;
 import java.util.HashSet;
 import java.util.Set;
 
+import kc.InstitutionBuilder.PoolBuilder;
 import kc.agents.AbstractAgent;
 import kc.agents.NonPlayerAgent;
 import kc.agents.PlayerAgent;
@@ -39,18 +40,26 @@ public class FullSimulation extends InjectedSimulation {
 	public Profile analystProfile = Profile.SUSTAINABLE;
 	@Parameter(name = "consumerProfile", optional = true)
 	public Profile consumerProfile = Profile.SUSTAINABLE;
+	@Parameter(name = "ncconsumerProfile", optional = true)
+	public Profile ncconsumerProfile = Profile.PROFITABLE;
 	@Parameter(name = "initiatorProfile", optional = true)
 	public Profile initiatorProfile = Profile.SUSTAINABLE;
 	@Parameter(name = "nProsumers")
 	public int nProsumers;
+	@Parameter(name = "nNcProsumers", optional = true)
+	public int nNcProsumers = 0;
 	@Parameter(name = "measuringCost")
 	public double measuringCost;
 	@Parameter(name = "initiatorCredit")
 	public int initiatorCredit;
 	@Parameter(name = "qscale", optional = true)
-	public double qscale = 0.05;
+	public double qscale = 0.005;
 	@Parameter(name = "subscription", optional = true)
 	public boolean subscription = false;
+	@Parameter(name = "payOnApp", optional = true)
+	public boolean payOnAppropriate = false;
+	@Parameter(name = "separateAnalyst", optional = true)
+	public boolean separateAnalyst = true;
 
 	InstitutionService inst;
 	EInstSession session;
@@ -67,7 +76,8 @@ public class FullSimulation extends InjectedSimulation {
 		try {
 			this.inst = serviceProvider
 					.getEnvironmentService(InstitutionService.class);
-			this.game = serviceProvider.getEnvironmentService(KnowledgeGame.class);
+			this.game = serviceProvider
+					.getEnvironmentService(KnowledgeGame.class);
 			this.session = this.inst.getSession();
 		} catch (UnavailableServiceException e) {
 			logger.fatal("No institution service", e);
@@ -114,31 +124,49 @@ public class FullSimulation extends InjectedSimulation {
 		final Set<String> consumers = Roles.set("consumer");
 		final Set<String> initiators = Roles.set("initiator");
 
-		InstitutionBuilder ib = new InstitutionBuilder(session, "i1", 100, "initiator")
-				.addMeasuredPool()
-				.end()
-				.addPredictorPool()
-				.end()
+		InstitutionBuilder ib = new InstitutionBuilder(session, "i1", 100,
+				"initiator")
 				.addFacility(facilitySunk, facilityFixed,
-						facilityMarginalStorage, facilityMarginalTrans);
-		if(subscription) {
-			ib.addDynamicSubscription(consumers, 0.1, initiators, initiators, 0.1);
+						facilityMarginalStorage, facilityMarginalTrans)
+				.addMeasuredPool().end();
+		PoolBuilder predPool = ib.addPredictorPool();
+		if (payOnAppropriate) {
+			predPool.dynamicPayOnAppropriation(consumers, 0.0, initiators,
+					initiators, 0.05, false);
+		}
+		predPool.end();
+		if (subscription) {
+			ib.addDynamicSubscription(consumers, 0.1, initiators, initiators,
+					0.1);
 		}
 		Institution i = ib.build();
 		// prosumers
 		for (int n = 0; n < nProsumers; n++) {
-			AbstractAgent ag = PlayerAgent.dumbPlayer("p" + n, badPredictor(),
-					consumerProfile);
+			Profile p = consumerProfile;
+			String name = "p" + (n - nNcProsumers);
+			if (n < nNcProsumers) {
+				p = ncconsumerProfile;
+				name = "nc" + n;
+			}
+			AbstractAgent ag = PlayerAgent.dumbPlayer(name, badPredictor(), p);
 			addAgent(s, ag, 10, i, "gatherer", "consumer");
 		}
-		// analyst
-		AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
-				goodPredictor("a1"), analystProfile);
-		addAgent(s, ag, 0, i, "analyst");
-		// initiator
-		AbstractAgent initiator = NonPlayerAgent.initiatorAgent("c1",
-				initiatorProfile);
-		addAgent(s, initiator, initiatorCredit, i, "initiator", "manager");
+
+		if (separateAnalyst) {
+			// analyst
+			AbstractAgent ag = NonPlayerAgent.analystAgent("a1",
+					goodPredictor("a1"), analystProfile);
+			addAgent(s, ag, 0, i, "analyst");
+			// initiator
+			AbstractAgent initiator = NonPlayerAgent.initiatorAgent("c1",
+					initiatorProfile);
+			addAgent(s, initiator, initiatorCredit, i, "initiator", "manager");
+		} else {
+			AbstractAgent ag = NonPlayerAgent.analystAgent("c1",
+					goodPredictor("c1"), initiatorProfile);
+			addAgent(s, ag, initiatorCredit, i, "initiator", "manager",
+					"analyst");
+		}
 		// benchmark
 		addAgent(s, PlayerAgent.knowledgePlayer("ind", goodPredictor("ind")),
 				0, null);
