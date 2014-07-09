@@ -86,9 +86,7 @@ public class PlayerAgent extends AbstractAgent {
 			Predictor defaultPredictor, Profile profile) {
 		PlayerAgent a = dumbPlayer(name, defaultPredictor);
 		a.addBehaviour(a.new VoteBehaviour(profile));
-		if (profile != Profile.SUSTAINABLE) {
-			a.addBehaviour(a.new MeasureBehaviour());
-		}
+		a.addBehaviour(a.new MeasureBehaviour(profile != Profile.SUSTAINABLE));
 		return a;
 	}
 
@@ -131,16 +129,16 @@ public class PlayerAgent extends AbstractAgent {
 	class MultiPredictorGameplayBehaviour extends GameplayBehaviour {
 
 		Map<Predictor, DescriptiveStatistics> history = new HashMap<Predictor, DescriptiveStatistics>();
-		int historyLength = 20;
+		int historyLength = 25;
 		double q0 = 0.5;
 
 		double prevAccount = 0;
 
-		final int strategyEvalPeriod = 5;
+		final int strategyEvalPeriod = 50;
 		Predictor last = null;
 		int strategyDuration = 0;
 		boolean review = false;
-		
+
 		Predictor fallback;
 
 		public MultiPredictorGameplayBehaviour(Predictor predictor) {
@@ -163,9 +161,10 @@ public class PlayerAgent extends AbstractAgent {
 		}
 
 		private void initPredictor(Predictor p) {
-			if(!history.containsKey(p)) {
+			if (!history.containsKey(p)) {
 				history.put(p, new DescriptiveStatistics(historyLength));
 				history.get(p).addValue(q0);
+				strategyDuration = 0; // reset evaluation period
 			}
 		}
 
@@ -423,9 +422,11 @@ public class PlayerAgent extends AbstractAgent {
 
 		KnowledgeCommons kc;
 		boolean measure = true;
+		boolean greedy;
 
-		public MeasureBehaviour() {
+		public MeasureBehaviour(boolean greedy) {
 			super(new Provision(PlayerAgent.this, null, new Measured()));
+			this.greedy = greedy;
 		}
 
 		@Override
@@ -441,13 +442,26 @@ public class PlayerAgent extends AbstractAgent {
 		@Override
 		public void doBehaviour() {
 			super.doBehaviour();
-			for (Institution i : institutions) {
-				boolean measureProfitable = game.getMeasuringCost() < kc
-						.getProvisionPay(i, new Measured());
-				if (measure && !measureProfitable) {
-					measure = false;
-					sendEvent("measure", measure);
-				} else if (!measure && measureProfitable) {
+			if (institutions.isEmpty()) {
+				// no institutions to provision to, disable measure.
+				measure = false;
+				sendEvent("measure", measure);
+			} else {
+				if (this.greedy) {
+					for (Institution i : institutions) {
+						boolean measureProfitable = game.getMeasuringCost() < kc
+								.getProvisionPay(i, new Measured());
+						if (measure && !measureProfitable) {
+							measure = false;
+							sendEvent("measure", measure);
+						} else if (!measure && measureProfitable) {
+							measure = true;
+							sendEvent("measure", measure);
+						}
+					}
+				} else if (measure == false) {
+					// not greedy and not measure and can provision to
+					// institutions
 					measure = true;
 					sendEvent("measure", measure);
 				}
