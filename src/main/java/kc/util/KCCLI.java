@@ -294,7 +294,7 @@ public class KCCLI extends Presage2CLI {
 				.addFixedParameter("payOnApp", true)
 				.addFixedParameter("initiatorProfile",
 						Profile.SUSTAINABLE.name())
-				.addArrayParameter("nNcProsumers", 1, 5, 9);
+				.addArrayParameter("nNcProsumers", 2, 6, 8);
 		Experiment multi = new MultiExperiment("building", "", basic, sub,
 				payApp, measureCost)
 				.addArrayParameter("facilityCostProfile", 0, 1)

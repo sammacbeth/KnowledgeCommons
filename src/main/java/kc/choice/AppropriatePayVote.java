@@ -80,7 +80,7 @@ public class AppropriatePayVote implements BallotHandler {
 						choice = ChangeFeeIssue.NOCHANGE;
 				} else {
 					// others are paying, set a fair rate
-					if (profit < 0)
+					if (profit < 0.5)
 						choice = ChangeFeeIssue.INCREASE;
 					else if (profit > 1.0)
 						choice = ChangeFeeIssue.DECREASE;

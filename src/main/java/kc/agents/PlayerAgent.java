@@ -156,11 +156,15 @@ public class PlayerAgent extends AbstractAgent {
 			this.q0 = q0;
 			this.historyLength = length;
 			this.review = review;
-			initPredictor(initialPredictor);
+			initPredictor(initialPredictor, 0);
 			this.fallback = initialPredictor;
 		}
 
 		private void initPredictor(Predictor p) {
+			initPredictor(p, this.q0);
+		}
+		
+		private void initPredictor(Predictor p, double q0) {
 			if (!history.containsKey(p)) {
 				history.put(p, new DescriptiveStatistics(historyLength));
 				history.get(p).addValue(q0);
