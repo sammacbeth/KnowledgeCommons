@@ -295,8 +295,27 @@ public class KCCLI extends Presage2CLI {
 				.addFixedParameter("initiatorProfile",
 						Profile.SUSTAINABLE.name())
 				.addArrayParameter("nNcProsumers", 2, 6, 8);
-		Experiment multi = new MultiExperiment("building", "", basic, sub,
-				payApp, measureCost)
+
+		Experiment market = new ParameterSweep(
+				"market",
+				"market:%{p.facilityCostProfile}:%{p.analystProfile}:%{p.consumerProfile}",
+				"kc.FullSimulation", 200)
+				.addFixedParameter("type", "market")
+				.addArrayParameter("measuringCost", 0)
+				.addFixedParameter("payOnApp", true)
+				.addFixedParameter("payOnProv", true)
+				.addArrayParameter("analystProfile",
+						Profile.SUSTAINABLE.name(), Profile.PROFITABLE,
+						Profile.GREEDY.name())
+				.addArrayParameter("consumerProfile",
+						Profile.SUSTAINABLE.name(), Profile.PROFITABLE,
+						Profile.GREEDY.name());
+
+		Experiment multi = new MultiExperiment("building", "", /*
+																 * basic, sub,
+																 * payApp,
+																 * measureCost
+																 */market)
 				.addArrayParameter("facilityCostProfile", 0, 1)
 				.addFixedParameter("nProsumers", 10)
 				.addFixedParameter("initiatorCredit", 0);

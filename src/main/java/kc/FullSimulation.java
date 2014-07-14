@@ -138,18 +138,18 @@ public class FullSimulation extends InjectedSimulation {
 		InstitutionBuilder ib;
 
 		if (type.equalsIgnoreCase("market")) {
-			ib = new InstitutionBuilder(session, "i1", 100)
+			ib = new InstitutionBuilder(session, "i1", 100, "gatherer", "consumer", "analyst")
 			.addFacility(facilitySunk, facilityFixed,
 					facilityMarginalStorage, facilityMarginalTrans);
 			PoolBuilder measPool = ib.addMeasuredPool();
 			if (payOnProvision) {
-				measPool.dynamicPayOnAppropriation(analysts, 0.0, initiators,
+				measPool.dynamicPayOnAppropriation(analysts, 0.05, initiators,
 						gatherers, 0.05, true);
 			}
 			measPool.end();
 			PoolBuilder predPool = ib.addPredictorPool();
 			if (payOnAppropriate) {
-				predPool.dynamicPayOnAppropriation(consumers, 0.0, initiators,
+				predPool.dynamicPayOnAppropriation(consumers, 0.05, initiators,
 						analysts, 0.05, true);
 			}
 			predPool.end();
@@ -164,13 +164,13 @@ public class FullSimulation extends InjectedSimulation {
 							facilityMarginalStorage, facilityMarginalTrans);
 			PoolBuilder measPool = ib.addMeasuredPool();
 			if (payOnProvision) {
-				measPool.dynamicPayOnAppropriation(analysts, 0.05, initiators,
+				measPool.dynamicPayOnAppropriation(analysts, 0.0, initiators,
 						initiators, 0.05, true);
 			}
 			measPool.end();
 			PoolBuilder predPool = ib.addPredictorPool();
 			if (payOnAppropriate) {
-				predPool.dynamicPayOnAppropriation(consumers, 0.05, initiators,
+				predPool.dynamicPayOnAppropriation(consumers, 0.0, initiators,
 						initiators, 0.05, true);
 			}
 			predPool.end();

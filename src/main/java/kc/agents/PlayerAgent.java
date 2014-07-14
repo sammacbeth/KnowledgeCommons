@@ -453,7 +453,7 @@ public class PlayerAgent extends AbstractAgent {
 			} else {
 				if (this.greedy) {
 					for (Institution i : institutions) {
-						boolean measureProfitable = game.getMeasuringCost() < kc
+						boolean measureProfitable = game.getMeasuringCost() <= kc
 								.getProvisionPay(i, new Measured());
 						if (measure && !measureProfitable) {
 							measure = false;
