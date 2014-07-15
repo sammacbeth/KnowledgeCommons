@@ -72,12 +72,17 @@ rule "Pay institution Costs"
 		$acc : Account(holder == $i, balance < 0, $bal : balance)
 		T($t : t)
 		not( PaidInstCosts($i, $t;) )
+		accumulate(
+			owed($i, $am;);
+			$due : sum($am);
+			$due + $bal < 0)
 		accumulate( 
 			RoleOf(inst == $i, $r contains role, $a : actor); 
 			$payers : collectSet($a);
 			$payers.size() > 0)
 	then
-		double balanceDue = -1 * $bal / $payers.size();
+		double balanceDue = -1 * ($bal + $due.doubleValue()) / $payers.size();
+		//logger.info("Inst owed "+ $due +", balance "+ $bal);
 		for(Object o : $payers) {
 			Actor a = (Actor) o;
 			insert( new Obl(a, new Transfer(a, $i, $i, balanceDue) ));
@@ -140,6 +145,7 @@ rule "Pay provider on appropriation"
 		Provision($provider : actor, inst == $i, artifact == $art, actor != $appropriator, valid == true)
 		not( FeeIssued( $appropriator, $app, $t ;) )
 	then
+		//logger.info("Pay "+ $provider +" "+ $pay + " for "+ $app); 
 		Transfer trans = new Transfer($i, $provider, $pay);
 		trans.setT($t);
 		insert( trans );

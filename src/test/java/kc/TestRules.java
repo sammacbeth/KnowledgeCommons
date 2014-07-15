@@ -175,6 +175,7 @@ public class TestRules {
 	public void testPayProvider() {
 		final double BORROW_LIM = 10;
 
+		session.LOG_WM = true;
 		DataInstitution i = new DataInstitution("i1", BORROW_LIM);
 		MeteredPool p = new MeteredPool(i, RoleOf.roleSet("test"),
 				RoleOf.roleSet("test"), RoleOf.roleSet(),
@@ -192,10 +193,14 @@ public class TestRules {
 		Account ac1 = new Account(a1, 0);
 		Actor a2 = new StubActor("a2");
 		Account ac2 = new Account(a2, 0);
+		Actor a3 = new StubActor("a3");
+		Account ac3 = new Account(a3, 0);
 		session.insert(new RoleOf(a1, i, "test"));
 		session.insert(new RoleOf(a2, i, "test"));
+		session.insert(new RoleOf(a3, i, "test"));
 		session.insert(ac1);
 		session.insert(ac2);
+		session.insert(ac3);
 
 		session.incrementTime();
 
@@ -221,5 +226,17 @@ public class TestRules {
 		assertEquals(0 - p.payOnProvision - p.payOnAppropriation * 2, i
 				.getAccount().getBalance(), DELTA);
 		assertEquals(0.0, ac2.getBalance(), DELTA);
+		
+		session.insert(new Appropriate(a2, i, i));
+		session.insert(new Appropriate(a3, i, i));
+		session.incrementTime();
+		
+		assertEquals(p.payOnProvision + p.payOnAppropriation * 4,
+				ac1.getBalance(), DELTA);
+		assertEquals(0 - p.payOnProvision - p.payOnAppropriation * 4, i
+				.getAccount().getBalance(), DELTA);
+		assertEquals(0.0, ac2.getBalance(), DELTA);
+		assertEquals(0.0, ac3.getBalance(), DELTA);
 	}
+
 }
