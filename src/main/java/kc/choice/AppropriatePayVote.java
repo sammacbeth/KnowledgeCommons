@@ -129,6 +129,35 @@ public class AppropriatePayVote implements BallotHandler {
 					choice = Preferences.generate(issue.getMethod(), rating, true, 3);
 					break;
 				}
+			} else if(initiator) {
+				// initiator who is not invested either way in the pool
+				Map<Object, Double> rating = new HashMap<Object, Double>();
+				double preferred = 0;
+				switch (type) {
+				case GREEDY:
+				case PROFITABLE:
+					preferred = 0;
+					break;
+				case SUSTAINABLE:
+					if (!issue.paidByAppropriators) {
+						// ensure inst can bare cost
+						if (instBalance < 0)
+							preferred = current - 0.1;
+						else if (instBalance > 0 && current < 0.1)
+							preferred = current + 0.1;
+						else
+							preferred = current;
+					} else {
+						// others are paying, set a fair rate
+						preferred = 0.05;
+					}
+					break;
+				}
+				for (Object o : options) {
+					double fee = Double.parseDouble(o.toString());
+					rating.put(o, Math.abs(preferred - fee));
+				}
+				choice = Preferences.generate(issue.getMethod(), rating, true, 3);
 			}
 		} else {
 			if (beneficiary) {
