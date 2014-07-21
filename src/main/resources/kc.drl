@@ -73,16 +73,15 @@ rule "Pay institution Costs"
 		T($t : t)
 		not( PaidInstCosts($i, $t;) )
 		accumulate(
-			owed($i, $am;);
-			$due : sum($am);
-			$due + $bal < 0)
+			Transfer( payee == $i, toPay > 0, $tp : toPay );
+			$due : sum($tp))
 		accumulate( 
 			RoleOf(inst == $i, $r contains role, $a : actor); 
 			$payers : collectSet($a);
 			$payers.size() > 0)
 	then
 		double balanceDue = -1 * ($bal + $due.doubleValue()) / $payers.size();
-		//logger.info("Inst owed "+ $due +", balance "+ $bal);
+		logger.info("Inst owed "+ $due +", balance "+ $bal);
 		for(Object o : $payers) {
 			Actor a = (Actor) o;
 			insert( new Obl(a, new Transfer(a, $i, $i, balanceDue) ));
@@ -143,9 +142,11 @@ rule "Pay provider on appropriation"
 		$app : Appropriate(t == $t, $art : artifact, $i : inst, $appropriator : actor, valid == true)
 		MeteredPool(inst == $i, payOnAppropriation > 0, artifacts contains $art, $pay : payOnAppropriation)
 		Provision($provider : actor, inst == $i, artifact == $art, actor != $appropriator, valid == true)
+		RoleOf(inst == $i, actor == $appropriator ) // appropriator has a role
+		RoleOf(inst == $i, actor == $provider ) // provider has a role
 		not( FeeIssued( $appropriator, $app, $t ;) )
 	then
-		//logger.info("Pay "+ $provider +" "+ $pay + " for "+ $app); 
+		logger.info("Pay "+ $provider +" "+ $pay + " for "+ $app); 
 		Transfer trans = new Transfer($i, $provider, $pay);
 		trans.setT($t);
 		insert( trans );
@@ -157,10 +158,21 @@ rule "Pay provider on provision"
 		T($t : t)
 		$prov : Provision(t == $t, $art : artifact, $i : inst, $provider : actor, valid == true)
 		MeteredPool(inst == $i, payOnProvision > 0, artifacts contains $art, $pay : payOnProvision)
+		RoleOf(inst == $i, actor == $provider ) // provider has a role
 		not( FeeIssued( $provider, $prov, $t ;) )
 	then
 		Transfer trans = new Transfer($i, $provider, $pay);
 		trans.setT($t);
 		insert( trans );
 		insert( new FeeIssued($provider, $prov, $t) );
+end
+
+rule "Leave inst discards debts"
+	when
+		$t : Transfer($a : payer, $i : payee)
+		not( Institution(this == $a) )
+		not( exists( RoleOf(actor == $a, inst == $i ) ))
+	then
+		logger.info("Retract: "+ $t);
+		retract($t);
 end
