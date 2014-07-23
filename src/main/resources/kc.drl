@@ -38,13 +38,21 @@ query getProvisionPay(Institution i, Object artifact)
 	MeteredPool(inst == i, artifactMatcher.matches(artifact), $pay : payOnProvision)
 end
 
+query getAppropriationFee(Institution i, Object artifact)
+	MeteredPool(inst == i, artifactMatcher.matches(artifact), $fees : appropriationFees)
+end
+
 rule "Institution Bankruptcy"
 	salience -100
 	when
 		$acc : Account(balance < minValue, $i : holder, holder instanceof Institution)
+		not( Bankrupt($i;) )
 	then
 		logger.info($acc +" is bankrupt!");
 		insert( new Bankrupt((Institution) $i));
+		modify($acc) {
+			setFrozen(true);
+		}
 end
 
 rule "Revoke roles on bankruptcy"

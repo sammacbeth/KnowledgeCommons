@@ -311,11 +311,8 @@ public class KCCLI extends Presage2CLI {
 						Profile.SUSTAINABLE.name(), Profile.PROFITABLE,
 						Profile.GREEDY.name());
 
-		Experiment multi = new MultiExperiment("building", "", /*
-																 * basic, sub,
-																 * payApp,
-																 * measureCost
-																 */market)
+		Experiment multi = new MultiExperiment("building", "", basic, sub,
+				payApp, measureCost, market)
 				.addArrayParameter("facilityCostProfile", 0, 1)
 				.addFixedParameter("nProsumers", 10)
 				.addFixedParameter("initiatorCredit", 0);

@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import kc.Game;
 import kc.GameSimulation;
 import kc.InstitutionService;
+import kc.KnowledgeCommons;
 import kc.Measured;
 import kc.Review;
 import kc.choice.AppropriatePayVote;
@@ -33,6 +34,7 @@ import uk.ac.imperial.einst.ipower.IPower;
 import uk.ac.imperial.einst.ipower.Obl;
 import uk.ac.imperial.einst.ipower.ObligationReactive;
 import uk.ac.imperial.einst.ipower.PowerReactive;
+import uk.ac.imperial.einst.micropay.Account;
 import uk.ac.imperial.einst.micropay.MicroPayments;
 import uk.ac.imperial.einst.resource.Appropriate;
 import uk.ac.imperial.einst.resource.AppropriationsListener;
@@ -165,6 +167,9 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 			AppropriationsListener {
 
 		ProvisionAppropriationSystem sys;
+		KnowledgeCommons kc;
+		MicroPayments pay;
+		Account acc;
 		int lastRequest = -1;
 		int appropriateLim = 100;
 
@@ -178,19 +183,31 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 			try {
 				sys = inst.getSession().getModule(
 						ProvisionAppropriationSystem.class);
+				kc = inst.getSession().getModule(KnowledgeCommons.class);
+				pay = inst.getSession().getModule(MicroPayments.class);
 			} catch (UnavailableModuleException e) {
 				throw new RuntimeException(e);
 			}
 			sys.registerForAppropriations(AbstractAgent.this, this);
+			acc = pay.getAccount(AbstractAgent.this);
 		}
 
 		@Override
 		public void doBehaviour() {
 			super.doBehaviour();
 			for (Institution i : institutions) {
-				inst.act(new Request(AbstractAgent.this, i,
-						new MeasuredMatcher().setNewerThan(lastRequest),
-						appropriateLim));
+				double fee = kc.getAppropriationFee(i, new Measured(), "analyst");
+				double available = acc.getBalance() - acc.getMinValue();
+				if(fee > 0) {
+					appropriateLim = (int) Math.floor(available / (2*fee));
+				} else {
+					appropriateLim = 100;
+				}
+				if (appropriateLim > 0) {
+					inst.act(new Request(AbstractAgent.this, i,
+							new MeasuredMatcher().setNewerThan(lastRequest),
+							appropriateLim));
+				}
 			}
 		}
 
@@ -389,6 +406,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		AccessControl ac;
 		MicroPayments pay;
 		ProvisionAppropriationSystem pas;
+		KnowledgeCommons kc;
 		List<BallotHandler> handlers = new LinkedList<BallotHandler>();
 		Profile profile;
 
@@ -420,13 +438,14 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 				pay = inst.getSession().getModule(MicroPayments.class);
 				pas = inst.getSession().getModule(
 						ProvisionAppropriationSystem.class);
+				kc = inst.getSession().getModule(KnowledgeCommons.class);
 			} catch (UnavailableModuleException e) {
 				throw new RuntimeException(e);
 			}
 			handlers.add(new SubscriptionVote(AbstractAgent.this, this.profile,
 					pow, v, ac, pay));
 			handlers.add(new AppropriatePayVote(AbstractAgent.this,
-					this.profile, pas, pay, ac));
+					this.profile, pas, pay, ac, kc));
 		}
 
 		@Override
@@ -459,8 +478,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 					String role = e.getKey().getRight();
 					Set<String> roles = ac.getRoles(AbstractAgent.this, i);
 					// resign from instutions we're not using
-					if (e.getValue().get() == 0
-							&& roles.contains(role)) {
+					if (e.getValue().get() == 0 && roles.contains(role)) {
 						inst.act(new Resign(AbstractAgent.this, i, role));
 						sendEvent("leaveInstitution", i);
 					}

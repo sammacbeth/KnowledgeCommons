@@ -35,7 +35,7 @@ public abstract class SetFeeIssue extends FeeIssue {
 			double value = Double.parseDouble(winner.toString());
 			setFee(value);
 		} catch (NumberFormatException e) {
-			throw (e);
+			//throw (e);
 		}
 	}
 

@@ -6,6 +6,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import kc.DataInstitution;
+import kc.KnowledgeCommons;
+import kc.Measured;
 import kc.agents.BallotHandler;
 import kc.agents.Profile;
 import uk.ac.imperial.einst.Actor;
@@ -25,16 +27,18 @@ public class AppropriatePayVote implements BallotHandler {
 	final ProvisionAppropriationSystem pas;
 	final MicroPayments pay;
 	final AccessControl ac;
+	final KnowledgeCommons kc;
 
 	public AppropriatePayVote(Actor self, Profile type,
 			ProvisionAppropriationSystem pas, MicroPayments pay,
-			AccessControl ac) {
+			AccessControl ac, KnowledgeCommons kc) {
 		super();
 		this.self = self;
 		this.type = type;
 		this.pas = pas;
 		this.pay = pay;
 		this.ac = ac;
+		this.kc = kc;
 	}
 
 	@Override
@@ -54,6 +58,7 @@ public class AppropriatePayVote implements BallotHandler {
 		final boolean beneficiary = usage.provisionsAppropriated > usage.appropriations;
 		final boolean initiator = currentRoles.contains("initiator");
 		final boolean consumer = currentRoles.contains("consumer");
+		final boolean analyst = currentRoles.contains("analyst");
 		final double current = issue.getFee();
 		final Account account = pay.getAccount(self);
 		//final double debt = pay.getDebt(self);
@@ -89,6 +94,12 @@ public class AppropriatePayVote implements BallotHandler {
 					targetProfit = 1.0;
 					//targetProfit = (futureT-account.getBalance())/(futureT - b.getStarted());
 					required = (targetProfit - baseProfit)/nSold;
+					if(analyst) {
+						double fee = kc.getAppropriationFee(i, new Measured(), "analyst");
+						if(fee > required) {
+							required = fee + 0.1;
+						}
+					}
 					for (Object o : options) {
 						double fee = Double.parseDouble(o.toString());
 						rating.put(o, Math.abs(required - fee));
@@ -96,9 +107,15 @@ public class AppropriatePayVote implements BallotHandler {
 					choice = Preferences.generate(issue.getMethod(), rating, true, 3);
 					break;
 				case SUSTAINABLE:
-					targetProfit = consumer ? 0.1 : 0.4;
+					targetProfit = consumer ? 0.0 : 0.4;
 					//targetProfit = (0.25*futureT-account.getBalance())/(futureT - b.getStarted());
 					required = (targetProfit - baseProfit)/nSold;
+					if(analyst) {
+						double fee = kc.getAppropriationFee(i, new Measured(), "analyst");
+						if(fee > required) {
+							required = fee;
+						}
+					}
 					for (Object o : options) {
 						double fee = Double.parseDouble(o.toString());
 						rating.put(o, Math.abs(required - fee));

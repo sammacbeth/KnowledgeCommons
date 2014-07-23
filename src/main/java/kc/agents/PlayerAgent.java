@@ -174,7 +174,7 @@ public class PlayerAgent extends AbstractAgent {
 
 		private Predictor getBestPredictor() {
 			Predictor best = fallback;
-			double bestScore = 0;
+			double bestScore = 0.05;
 			for (Map.Entry<Predictor, DescriptiveStatistics> e : history
 					.entrySet()) {
 				double score = e.getValue().getMean();

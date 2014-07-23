@@ -49,11 +49,11 @@ public class KCStorage extends SqlStorage {
 					+ "INDEX(`simId`, `time`), INDEX(`simId`));");
 			createTable.execute("CREATE TABLE IF NOT EXISTS instActions "
 					+ "(`simId` bigint(20) NOT NULL, `time` int NOT NULL, "
-					+ "`action` VARCHAR(255) NOT NULL, "
+					+ "`action` VARCHAR(512) NOT NULL, "
 					+ "PRIMARY KEY(`simId`,`time`,`action`));");
 			createTable.execute("CREATE TABLE IF NOT EXISTS initialState "
 					+ "(`simId` bigint(20) NOT NULL, "
-					+ "`object` VARCHAR(255) NOT NULL, "
+					+ "`object` VARCHAR(512) NOT NULL, "
 					+ "PRIMARY KEY(`simId`,`object`), " + "INDEX(`simId`));");
 
 			gameInsert = conn

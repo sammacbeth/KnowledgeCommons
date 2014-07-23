@@ -1,5 +1,8 @@
 package kc;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.rule.QueryResults;
 import org.drools.runtime.rule.QueryResultsRow;
@@ -29,6 +32,18 @@ public class KnowledgeCommons implements Module {
 		if(res.size() == 1) {
 			QueryResultsRow row = res.iterator().next();
 			return (Double) row.get("$pay");
+		}
+		return 0;
+	}
+	
+	public double getAppropriationFee(Institution i, Object artifact, String role) {
+		QueryResults res = this.session.getQueryResults("getAppropriationFee", i, artifact);
+		if(res.size() == 1) {
+			@SuppressWarnings("unchecked")
+			Map<String, Double> fees = (Map<String, Double>) res.iterator().next().get("$fees");
+			if(fees.containsKey(role)) {
+				return fees.get(role);
+			}
 		}
 		return 0;
 	}
