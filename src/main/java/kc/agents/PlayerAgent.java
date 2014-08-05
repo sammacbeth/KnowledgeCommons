@@ -129,7 +129,7 @@ public class PlayerAgent extends AbstractAgent {
 	class MultiPredictorGameplayBehaviour extends GameplayBehaviour {
 
 		Map<Predictor, DescriptiveStatistics> history = new HashMap<Predictor, DescriptiveStatistics>();
-		int historyLength = 25;
+		int historyLength = 50;
 		double q0 = 0.5;
 
 		double prevAccount = 0;
@@ -163,7 +163,7 @@ public class PlayerAgent extends AbstractAgent {
 		private void initPredictor(Predictor p) {
 			initPredictor(p, this.q0);
 		}
-		
+
 		private void initPredictor(Predictor p, double q0) {
 			if (!history.containsKey(p)) {
 				history.put(p, new DescriptiveStatistics(historyLength));
@@ -453,8 +453,10 @@ public class PlayerAgent extends AbstractAgent {
 			} else {
 				if (this.greedy) {
 					for (Institution i : institutions) {
-						boolean measureProfitable = game.getMeasuringCost() <= kc
-								.getProvisionPay(i, new Measured());
+						boolean measureProfitable = game.getMeasuringCost() <= (kc
+								.getProvisionPay(i, new Measured()) + kc
+								.getAppropriationFee(i, new Measured(),
+										"analyst"));
 						if (measure && !measureProfitable) {
 							measure = false;
 							sendEvent("measure", measure);

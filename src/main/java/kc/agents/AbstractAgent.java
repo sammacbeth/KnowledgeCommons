@@ -197,9 +197,9 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 			super.doBehaviour();
 			for (Institution i : institutions) {
 				double fee = kc.getAppropriationFee(i, new Measured(), "analyst");
-				double available = acc.getBalance() - acc.getMinValue();
+				double available = acc.getBalance() - acc.getMinValue() - 5;
 				if(fee > 0) {
-					appropriateLim = (int) Math.floor(available / (2*fee));
+					appropriateLim = (int) Math.floor(available / fee);
 				} else {
 					appropriateLim = 100;
 				}

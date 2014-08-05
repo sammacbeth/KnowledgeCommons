@@ -10,6 +10,7 @@ import kc.KnowledgeCommons;
 import kc.Measured;
 import kc.agents.BallotHandler;
 import kc.agents.Profile;
+import kc.prediction.Predictor;
 import uk.ac.imperial.einst.Actor;
 import uk.ac.imperial.einst.access.AccessControl;
 import uk.ac.imperial.einst.micropay.Account;
@@ -91,11 +92,16 @@ public class AppropriatePayVote implements BallotHandler {
 					choice = Preferences.generate(issue.getMethod(), preferences, false, 3);
 					break;
 				case PROFITABLE:
-					targetProfit = 1.0;
+					targetProfit = 0.1;
 					//targetProfit = (futureT-account.getBalance())/(futureT - b.getStarted());
 					required = (targetProfit - baseProfit)/nSold;
 					if(analyst) {
 						double fee = kc.getAppropriationFee(i, new Measured(), "analyst");
+						if(fee > required) {
+							required = fee + 0.1;
+						}
+					} else if(consumer) {
+						double fee = kc.getAppropriationFee(i, Predictor.class, "consumer");
 						if(fee > required) {
 							required = fee + 0.1;
 						}
@@ -107,15 +113,15 @@ public class AppropriatePayVote implements BallotHandler {
 					choice = Preferences.generate(issue.getMethod(), rating, true, 3);
 					break;
 				case SUSTAINABLE:
-					targetProfit = consumer ? 0.0 : 0.4;
+					targetProfit = consumer ? 0.0 : 0.3;
 					//targetProfit = (0.25*futureT-account.getBalance())/(futureT - b.getStarted());
 					required = (targetProfit - baseProfit)/nSold;
-					if(analyst) {
+					/*if(analyst) {
 						double fee = kc.getAppropriationFee(i, new Measured(), "analyst");
 						if(fee > required) {
 							required = fee;
 						}
-					}
+					}*/
 					for (Object o : options) {
 						double fee = Double.parseDouble(o.toString());
 						rating.put(o, Math.abs(required - fee));
@@ -128,20 +134,20 @@ public class AppropriatePayVote implements BallotHandler {
 				case GREEDY:
 				case PROFITABLE:
 					for (int j = 0; j < 2; j++) {
-						preferences.get(j).addAndGet(3-j);
+						preferences.get(options[j]).addAndGet(3-j);
 					}
 					choice = Preferences.generate(issue.getMethod(), preferences, true, 3);
 					break;
 				case SUSTAINABLE:
 					double nBought = (usage.appropriations - usage.provisionsAppropriated) / 6.0;
 					double cost = current * nBought;
-					double baseProfit = profit + cost;
+					double baseProfit = profit - cost;
 					double targetProfit = 0.25;
 					double limit = (baseProfit - targetProfit)/nBought;
 					Map<Object, Double> rating = new HashMap<Object, Double>();
 					for (Object o : options) {
 						double fee = Double.parseDouble(o.toString());
-						rating.put(o, limit - fee);
+						rating.put(o, Math.abs(limit - fee));
 					}
 					choice = Preferences.generate(issue.getMethod(), rating, true, 3);
 					break;

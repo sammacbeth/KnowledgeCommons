@@ -135,12 +135,13 @@ public class FullSimulation extends InjectedSimulation {
 		final Set<String> analysts = Roles.set("analyst");
 		final Set<String> gatherers = Roles.set("gatherer");
 
-		InstitutionBuilder ib;
+		InstitutionBuilder ib = null;
 
 		if (type.equalsIgnoreCase("market")) {
-			ib = new InstitutionBuilder(session, "i1", 100, "gatherer", "consumer", "analyst")
-			.addFacility(facilitySunk, facilityFixed,
-					facilityMarginalStorage, facilityMarginalTrans);
+			ib = new InstitutionBuilder(session, "i1", 100, "gatherer",
+					"consumer", "analyst").addFacility(facilitySunk,
+					facilityFixed, facilityMarginalStorage,
+					facilityMarginalTrans);
 			PoolBuilder measPool = ib.addMeasuredPool();
 			if (payOnProvision) {
 				measPool.dynamicPayOnAppropriation(analysts, 0.05, initiators,
@@ -157,11 +158,24 @@ public class FullSimulation extends InjectedSimulation {
 				ib.addDynamicSubscription(consumers, 0.1, initiators,
 						initiators, 0.1);
 			}
+		} else if (type.equalsIgnoreCase("collective")) {
+			ib = new InstitutionBuilder(session, "i1", 100, "gatherer",
+					"consumer", "analyst").addFacility(facilitySunk,
+					facilityFixed, facilityMarginalStorage,
+					facilityMarginalTrans);
+			PoolBuilder measPool = ib.addMeasuredPool();
+			measPool.dynamicPayOnAppropriation(analysts, 0.0, initiators,
+					Roles.union(gatherers, analysts), 0.05, true);
+			measPool.end();
+			PoolBuilder predPool = ib.addPredictorPool();
+			predPool.dynamicPayOnAppropriation(consumers, 0.0, initiators,
+					Roles.union(consumers, analysts), 0.05, true);
+			predPool.end();
 		} else {
 			// centralised
-			ib = new InstitutionBuilder(session, "i1", 100, "initiator")
-					.addFacility(facilitySunk, facilityFixed,
-							facilityMarginalStorage, facilityMarginalTrans);
+			ib = new InstitutionBuilder(session, "i1", 100).addFacility(
+					facilitySunk, facilityFixed, facilityMarginalStorage,
+					facilityMarginalTrans);
 			PoolBuilder measPool = ib.addMeasuredPool();
 			if (payOnProvision) {
 				measPool.dynamicPayOnAppropriation(analysts, 0.0, initiators,
@@ -175,8 +189,8 @@ public class FullSimulation extends InjectedSimulation {
 			}
 			predPool.end();
 			if (subscription) {
-				ib.addDynamicSubscription(consumers, 0.1, initiators,
-						initiators, 0.1);
+				ib.addDynamicSubscription(consumers, 0, initiators, initiators,
+						0.1);
 			}
 		}
 		Institution i = ib.build();
