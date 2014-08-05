@@ -1,6 +1,9 @@
 package kc.prediction;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import kc.Measured;
 import kc.State;
@@ -12,6 +15,11 @@ public class PseudoPredictor implements Predictor {
 	String name = "";
 	int datapoints = 0;
 	double efficiency = 1.0;
+
+	LinkedList<AtomicInteger> history = new LinkedList<AtomicInteger>();
+	int sum = 0;
+	int offset = 0;
+	final int limit = 20;
 
 	public PseudoPredictor() {
 		super();
@@ -30,6 +38,21 @@ public class PseudoPredictor implements Predictor {
 
 	@Override
 	public void addTrainingData(Measured data) {
+		int ind = data.getT() - offset;
+		try {
+			history.get(ind).incrementAndGet();
+		} catch(IndexOutOfBoundsException e) {
+			while(history.size() + offset < data.getT()) {
+				history.add(new AtomicInteger(0));
+			}
+			history.add(new AtomicInteger(1));
+			while(history.size() > limit) {
+				int n = history.remove(0).get();
+				offset++;
+				sum -= n;
+			}
+		}
+		sum += 1;
 		datapoints++;
 	}
 
@@ -75,6 +98,10 @@ public class PseudoPredictor implements Predictor {
 		} else if (!name.equals(other.name))
 			return false;
 		return true;
+	}
+
+	public List<AtomicInteger> getHistory() {
+		return Collections.unmodifiableList(history);
 	}
 
 }

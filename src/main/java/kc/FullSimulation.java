@@ -9,6 +9,7 @@ import kc.agents.NonPlayerAgent;
 import kc.agents.PlayerAgent;
 import kc.agents.Profile;
 import kc.games.KnowledgeGame;
+import kc.games.ShortKnowledgeGame;
 import kc.prediction.Predictor;
 import kc.prediction.PseudoPredictor;
 import uk.ac.imperial.einst.EInstSession;
@@ -72,7 +73,7 @@ public class FullSimulation extends InjectedSimulation {
 	public FullSimulation(Set<AbstractModule> modules) {
 		super(modules);
 		EInstSession.USE_KB_CACHE = true;
-		GameSimulation.game = KnowledgeGame.class;
+		GameSimulation.game = ShortKnowledgeGame.class;
 	}
 
 	@Inject
@@ -81,7 +82,7 @@ public class FullSimulation extends InjectedSimulation {
 			this.inst = serviceProvider
 					.getEnvironmentService(InstitutionService.class);
 			this.game = serviceProvider
-					.getEnvironmentService(KnowledgeGame.class);
+					.getEnvironmentService(GameSimulation.game);
 			this.session = this.inst.getSession();
 		} catch (UnavailableServiceException e) {
 			logger.fatal("No institution service", e);
@@ -98,8 +99,8 @@ public class FullSimulation extends InjectedSimulation {
 	protected Set<AbstractModule> getModules() {
 		Set<AbstractModule> modules = new HashSet<AbstractModule>();
 		modules.add(new AbstractEnvironmentModule()
-				.addActionHandler(KnowledgeGame.class)
-				.addParticipantGlobalEnvironmentService(KnowledgeGame.class)
+				.addActionHandler(GameSimulation.game)
+				.addParticipantGlobalEnvironmentService(GameSimulation.game)
 				.addParticipantGlobalEnvironmentService(
 						InstitutionService.class));
 		modules.add(NetworkModule.noNetworkModule());

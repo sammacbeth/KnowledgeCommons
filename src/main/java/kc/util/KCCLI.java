@@ -310,7 +310,7 @@ public class KCCLI extends Presage2CLI {
 				.addArrayParameter("consumerProfile",
 						Profile.SUSTAINABLE.name(), Profile.PROFITABLE,
 						Profile.GREEDY.name());
-		
+
 		Experiment marketNC = new ParameterSweep(
 				"marketNC",
 				"marketnc:%{p.facilityCostProfile}:%{p.analystProfile}:%{p.nNcProsumers}:%{p.measuringCost}",
@@ -324,10 +324,21 @@ public class KCCLI extends Presage2CLI {
 						Profile.GREEDY.name())
 				.addArrayParameter("consumerProfile",
 						Profile.SUSTAINABLE.name())
-					.addArrayParameter("nNcProsumers", 2, 6, 8);
+				.addArrayParameter("nNcProsumers", 2, 6, 8);
 
-		Experiment multi = new MultiExperiment("building", "", /*basic, sub,
-				payApp, measureCost, market*/ marketNC)
+		Experiment collective = new ParameterSweep(
+				"collective",
+				"collect:%{p.facilityCostProfile}:%{p.analystProfile}:%{p.nNcProsumers}:%{p.measuringCost}",
+				"kc.FullSimulation", 200)
+				.addFixedParameter("type", "collective")
+				.addArrayParameter("measuringCost", 0, 0.1)
+				.addArrayParameter("analystProfile",
+						Profile.SUSTAINABLE.name(), Profile.PROFITABLE,
+						Profile.GREEDY.name())
+				.addArrayParameter("nNcProsumers", 2, 6, 8);
+
+		Experiment multi = new MultiExperiment("building", "", basic, sub,
+				payApp, measureCost, market, marketNC, collective)
 				.addArrayParameter("facilityCostProfile", 0, 1)
 				.addFixedParameter("nProsumers", 10)
 				.addFixedParameter("initiatorCredit", 0);
