@@ -2,7 +2,10 @@ import kc.choice.PoolFee
 import kc.choice.SubscriptionFee
 import kc.choice.PoolAppropriatePay
 
+import uk.ac.imperial.einst.access.RoleOf
+import uk.ac.imperial.einst.vote.Issue
 import uk.ac.imperial.einst.vote.Declare
+import uk.ac.imperial.einst.vote.Vote
 
 global org.apache.log4j.Logger logger
 
@@ -33,4 +36,44 @@ rule "Change Appropriation fee"
 	then
 		$issue.updateFee($w);
 		modify($p) {}
+end
+
+rule "Set vote weight analyst-gatherers"
+	salience 1000
+	when
+		CloseBallot( $b : ballot, valid == true )
+		Issue( $i:inst, this == $b.issue, voteRoles contains "analyst", voteRoles contains "gatherer" )
+		accumulate( Vote(ballot == $b, valid == true, $a: actor, $v:this) and RoleOf(actor == $a, inst == $i, role == "analyst");
+			$aw : sum($v.getWeight()), $av : collectSet($v))
+		accumulate( Vote(ballot == $b, valid == true, $a: actor, $v:this) and RoleOf(actor == $a, inst == $i, role == "gatherer");
+			$gw : sum($v.getWeight()), $gv : collectSet($v))
+	then
+		//logger.info("Analysts: "+ $av +", weight= " + $aw);
+		//logger.info("Gatherers: "+ $gv +", weight= " + $gw);
+		if($aw.doubleValue() > 0 && $gw.doubleValue() > 0) {
+			for(Object o : $av) {
+				Vote v = (Vote) o;
+				v.setWeight($gw.doubleValue() / $aw.doubleValue());
+			}
+		}
+end
+
+rule "Set vote weight analyst-consumers"
+	salience 1000
+	when
+		CloseBallot( $b : ballot, valid == true )
+		Issue( $i:inst, this == $b.issue, voteRoles contains "analyst", voteRoles contains "consumer" )
+		accumulate( Vote(ballot == $b, valid == true, $a: actor, $v:this) and RoleOf(actor == $a, inst == $i, role == "analyst");
+			$aw : sum($v.getWeight()), $av : collectSet($v))
+		accumulate( Vote(ballot == $b, valid == true, $a: actor, $v:this) and RoleOf(actor == $a, inst == $i, role == "consumer");
+			$cw : sum($v.getWeight()), $cv : collectSet($v))
+	then
+		logger.info("Analysts: "+ $av +", weight= " + $aw);
+		logger.info("Consumers: "+ $cv +", weight= " + $cw);
+		if($aw.doubleValue() > 0 && $cw.doubleValue() > 0) {
+			for(Object o : $av) {
+				Vote v = (Vote) o;
+				v.setWeight($cw.doubleValue() / $aw.doubleValue());
+			}
+		}
 end
