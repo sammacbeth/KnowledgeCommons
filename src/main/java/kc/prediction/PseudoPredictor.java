@@ -9,6 +9,7 @@ import kc.Measured;
 import kc.State;
 import kc.Strategy;
 import kc.games.PseudoStrategy;
+import kc.games.ShortKnowledgeGame;
 
 public class PseudoPredictor implements Predictor {
 
@@ -19,7 +20,6 @@ public class PseudoPredictor implements Predictor {
 	LinkedList<AtomicInteger> history = new LinkedList<AtomicInteger>();
 	int sum = 0;
 	int offset = 0;
-	final int limit = 20;
 
 	public PseudoPredictor() {
 		super();
@@ -37,23 +37,23 @@ public class PseudoPredictor implements Predictor {
 	}
 
 	@Override
-	public void addTrainingData(Measured data) {
+	public synchronized void addTrainingData(Measured data) {
+		setT(data.getT());
 		int ind = data.getT() - offset;
-		try {
-			history.get(ind).incrementAndGet();
-		} catch(IndexOutOfBoundsException e) {
-			while(history.size() + offset < data.getT()) {
-				history.add(new AtomicInteger(0));
-			}
-			history.add(new AtomicInteger(1));
-			while(history.size() > limit) {
-				int n = history.remove(0).get();
-				offset++;
-				sum -= n;
-			}
-		}
+		history.get(ind).incrementAndGet();
 		sum += 1;
 		datapoints++;
+	}
+
+	public synchronized void setT(int t) {
+		while (history.size() + offset <= t) {
+			history.add(new AtomicInteger(0));
+		}
+		while (history.size() > ShortKnowledgeGame.dataLimit) {
+			int n = history.remove(0).get();
+			offset++;
+			sum -= n;
+		}
 	}
 
 	@Override

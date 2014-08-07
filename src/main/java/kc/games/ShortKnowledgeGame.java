@@ -12,6 +12,7 @@ import kc.Strategy;
 import kc.prediction.PseudoPredictor;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+import uk.ac.imperial.presage2.core.simulator.SimTime;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -20,7 +21,7 @@ import com.google.inject.Singleton;
 public class ShortKnowledgeGame extends Game {
 
 	int maxData = 10;
-	int dataLimit = 20;
+	static public final int dataLimit = 50;
 	double harmonicFactor = 3.6;
 	
 	@Inject
@@ -33,6 +34,7 @@ public class ShortKnowledgeGame extends Game {
 	protected double getReward(UUID actor, Strategy s) {
 		if (s instanceof PseudoStrategy) {
 			PseudoPredictor p = ((PseudoStrategy) s).source;
+			p.setT(SimTime.get().intValue());
 			double score = 0;
 			Iterator<AtomicInteger> it = p.getHistory().iterator();
 			int n = Math.min(p.getHistory().size(), dataLimit);

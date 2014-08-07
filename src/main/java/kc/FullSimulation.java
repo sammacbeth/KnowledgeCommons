@@ -65,6 +65,8 @@ public class FullSimulation extends InjectedSimulation {
 	public boolean separateAnalyst = true;
 	@Parameter(name = "type", optional = true)
 	public String type = "centralised";
+	@Parameter(name = "extraAnalystPay", optional = true)
+	public boolean extraAnalystPay = false;
 
 	InstitutionService inst;
 	EInstSession session;
@@ -123,7 +125,7 @@ public class FullSimulation extends InjectedSimulation {
 			facilityFixed = 1;
 			break;
 		case 1:
-			facilitySunk = 10;
+			facilitySunk = 0;
 			facilityFixed = 2;
 			break;
 		case 2:
@@ -146,18 +148,18 @@ public class FullSimulation extends InjectedSimulation {
 			PoolBuilder measPool = ib.addMeasuredPool();
 			if (payOnProvision) {
 				measPool.dynamicPayOnAppropriation(analysts, 0.05, initiators,
-						gatherers, 0.05, true);
+						gatherers, 0.01, true);
 			}
 			measPool.end();
 			PoolBuilder predPool = ib.addPredictorPool();
 			if (payOnAppropriate) {
 				predPool.dynamicPayOnAppropriation(consumers, 0.05, initiators,
-						analysts, 0.05, true);
+						analysts, 0.01, true);
 			}
 			predPool.end();
 			if (subscription) {
 				ib.addDynamicSubscription(consumers, 0.1, initiators,
-						initiators, 0.1);
+						initiators, 0.05);
 			}
 		} else if (type.equalsIgnoreCase("collective")) {
 			ib = new InstitutionBuilder(session, "i1", 100, "gatherer",
@@ -166,12 +168,33 @@ public class FullSimulation extends InjectedSimulation {
 					facilityMarginalTrans);
 			PoolBuilder measPool = ib.addMeasuredPool();
 			measPool.dynamicPayOnAppropriation(analysts, 0.0, initiators,
-					Roles.union(gatherers, analysts), 0.05, true);
+					Roles.union(gatherers, analysts), 0.01, true);
 			measPool.end();
 			PoolBuilder predPool = ib.addPredictorPool();
 			predPool.dynamicPayOnAppropriation(consumers, 0.0, initiators,
-					Roles.union(consumers, analysts), 0.05, true);
+					Roles.union(consumers, analysts), 0.01, true);
 			predPool.end();
+		} else if(type.equalsIgnoreCase("supply")) {
+			ib = new InstitutionBuilder(session, "i1", 100).addFacility(
+					facilitySunk, facilityFixed, facilityMarginalStorage,
+					facilityMarginalTrans);
+			Set<String> subPayers = new HashSet<String>(consumers);
+			PoolBuilder measPool = ib.addMeasuredPool();
+			if (payOnProvision) {
+				measPool.dynamicPayOnAppropriation(analysts, this.measuringCost, Roles.set(),
+						Roles.set(), 0.1, true);
+			}
+			measPool.end();
+			PoolBuilder predPool = ib.addPredictorPool();
+			if (payOnAppropriate) {
+				predPool.setPayOnAppropriation(0.1 + (extraAnalystPay ? this.measuringCost : 0));
+				subPayers.addAll(analysts);
+			}
+			predPool.end();
+			if (subscription) {
+				ib.addDynamicSubscription(subPayers, 0, initiators, initiators,
+						0.05);
+			}
 		} else {
 			// centralised
 			ib = new InstitutionBuilder(session, "i1", 100).addFacility(
@@ -180,18 +203,18 @@ public class FullSimulation extends InjectedSimulation {
 			PoolBuilder measPool = ib.addMeasuredPool();
 			if (payOnProvision) {
 				measPool.dynamicPayOnAppropriation(analysts, 0.0, initiators,
-						initiators, 0.05, true);
+						initiators, 0.01, true);
 			}
 			measPool.end();
 			PoolBuilder predPool = ib.addPredictorPool();
 			if (payOnAppropriate) {
 				predPool.dynamicPayOnAppropriation(consumers, 0.0, initiators,
-						initiators, 0.05, true);
+						initiators, 0.01, true);
 			}
 			predPool.end();
 			if (subscription) {
 				ib.addDynamicSubscription(consumers, 0, initiators, initiators,
-						0.1);
+						0.05);
 			}
 		}
 		Institution i = ib.build();
