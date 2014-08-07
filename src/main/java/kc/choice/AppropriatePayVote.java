@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import kc.DataInstitution;
+import kc.Game;
 import kc.KnowledgeCommons;
 import kc.Measured;
 import kc.agents.BallotHandler;
@@ -29,10 +30,11 @@ public class AppropriatePayVote implements BallotHandler {
 	final MicroPayments pay;
 	final AccessControl ac;
 	final KnowledgeCommons kc;
+	final Game g;
 
 	public AppropriatePayVote(Actor self, Profile type,
 			ProvisionAppropriationSystem pas, MicroPayments pay,
-			AccessControl ac, KnowledgeCommons kc) {
+			AccessControl ac, KnowledgeCommons kc, Game g) {
 		super();
 		this.self = self;
 		this.type = type;
@@ -40,6 +42,7 @@ public class AppropriatePayVote implements BallotHandler {
 		this.pay = pay;
 		this.ac = ac;
 		this.kc = kc;
+		this.g = g;
 	}
 
 	@Override
@@ -172,7 +175,13 @@ public class AppropriatePayVote implements BallotHandler {
 							preferred = current;
 					} else {
 						// others are paying, set a fair rate
-						preferred = 0.05;
+						double measuringCost = g.getMeasuringCost();
+						boolean measuredPool = issue.getPool().getContribRoles().contains("gatherer");
+						if(measuredPool) {
+							preferred = measuringCost;
+						} else {
+							preferred = 0.075 + (9*measuringCost/10);
+						}
 					}
 					break;
 				}

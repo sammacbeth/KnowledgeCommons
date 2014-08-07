@@ -445,7 +445,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 			handlers.add(new SubscriptionVote(AbstractAgent.this, this.profile,
 					pow, v, ac, pay));
 			handlers.add(new AppropriatePayVote(AbstractAgent.this,
-					this.profile, pas, pay, ac, kc));
+					this.profile, pas, pay, ac, kc, game));
 		}
 
 		@Override
