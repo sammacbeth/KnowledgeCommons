@@ -6,7 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
-		<presage.version>0.4.0-SNAPSHOT</presage.version>
+		<presage.version>0.3.5</presage.version>
 	</properties>
 
 	<dependencies>
