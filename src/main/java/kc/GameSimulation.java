@@ -3,8 +3,6 @@ package kc;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.management.relation.Role;
-
 import kc.agents.AbstractAgent;
 import kc.agents.NonPlayerAgent;
 import kc.agents.PlayerAgent;

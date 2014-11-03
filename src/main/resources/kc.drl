@@ -12,6 +12,7 @@ import uk.ac.imperial.einst.resource.Provision
 import uk.ac.imperial.einst.resource.facility.Facility
 
 import java.lang.Integer
+import java.lang.Math
 
 global org.apache.log4j.Logger logger
 
@@ -76,7 +77,7 @@ end
 rule "Pay institution Costs"
 	salience -10
 	when
-		$i : DataInstitution($r : payRoles)
+		$i : DataInstitution($r : payRoles, $max : maxPayRate)
 		$acc : Account(holder == $i, balance < 0, $bal : balance)
 		T($t : t)
 		not( PaidInstCosts($i, $t;) )
@@ -88,7 +89,7 @@ rule "Pay institution Costs"
 			$payers : collectSet($a);
 			$payers.size() > 0)
 	then
-		double balanceDue = -1 * ($bal + $due.doubleValue()) / $payers.size();
+		double balanceDue = Math.min(-1 * ($bal + $due.doubleValue()) / $payers.size(), $max);
 		logger.info("Inst owed "+ $due +", balance "+ $bal);
 		for(Object o : $payers) {
 			Actor a = (Actor) o;

@@ -196,9 +196,12 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		public void doBehaviour() {
 			super.doBehaviour();
 			for (Institution i : institutions) {
-				double fee = kc.getAppropriationFee(i, new Measured(), "analyst");
+				double fee = kc.getAppropriationFee(i, new Measured(),
+						"analyst");
 				double available = acc.getBalance() - acc.getMinValue() - 5;
-				if(fee > 0) {
+				if (available <= 0) {
+					appropriateLim = 0;
+				} else if (fee > 0) {
 					appropriateLim = (int) Math.floor(available / fee);
 				} else {
 					appropriateLim = 100;
@@ -370,8 +373,8 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		@Override
 		public void doBehaviour() {
 			super.doBehaviour();
-			int t = getTime().intValue();
-			if (t > 0 && t % ballotPeriod == 0) {
+			/*int t = getTime().intValue();
+			if (t == 2 || (t > 0 && t % ballotPeriod == 0)) {
 				for (Institution in : this.institutions) {
 					for (Issue i : v.getIssues(in)) {
 						if (!ballotWanted.contains(i)) {
@@ -381,13 +384,13 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 					}
 				}
 			}
-			if (t % ballotPeriod == ballotDuration) {
+			if (t == 4 || t % ballotPeriod == ballotDuration) {
 				while (!ballotsOpened.isEmpty()) {
 					Issue i = ballotsOpened.poll();
 					inst.act(new CloseBallot(AbstractAgent.this, i.getInst(), v
 							.getOpenBallot(i)));
 				}
-			}
+			}*/
 		}
 
 		@Override

@@ -16,6 +16,7 @@ public class DataInstitution implements Institution {
 	double profit = 0;
 
 	Set<String> payRoles = new HashSet<String>();
+	double maxPayRate = 1;
 	final Map<String, Double> subscriptionFees = new HashMap<String, Double>();
 
 	DataInstitution(String name, double borrowLimit, String... payRoles) {
@@ -52,6 +53,10 @@ public class DataInstitution implements Institution {
 
 	public void setProfit(double profit) {
 		this.profit = profit;
+	}
+
+	public double getMaxPayRate() {
+		return maxPayRate;
 	}
 
 }

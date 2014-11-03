@@ -48,6 +48,8 @@ public class KCCLI extends Presage2CLI {
 		addExperiment(experiments, building());
 		addExperiment(experiments, supply());
 		addExperiment(experiments, power());
+		addExperiment(experiments, staticInst());
+		addExperiment(experiments, selforg());
 		// Map<String, String> experiments = new HashMap<String, String>();
 		// experiments.put("bandits", "Get properties of the bandit game.");
 		// experiments.put("pseudo", "Get properties of the pseudo game.");
@@ -420,23 +422,30 @@ public class KCCLI extends Presage2CLI {
 	}
 
 	private Experiment power() {
+		int n = 300;
 		Experiment basepower = new ParameterSweep("basepower",
 				"basepower:%{p.facilityCostProfile}:%{p.type}",
-				"kc.FullSimulation", 200)
+				"kc.FullSimulation", n)
 				.addArrayParameter("facilityCostProfile", 1)
-				.addArrayParameter("type", "centralised", "market",
-						"collective").addFixedParameter("nProsumers", 10)
+				.addArrayParameter("type", "centralised", "collective")
+				.addFixedParameter("nProsumers", 10)
 				.addFixedParameter("initiatorCredit", 0)
 				.addFixedParameter("payOnProv", true)
 				.addFixedParameter("payOnApp", true)
 				.addFixedParameter("subscription", true)
-				.addFixedParameter("measuringCost", 0);
-		Experiment initpower = new ParameterSweep("initpower",
-				"initpower:%{p.facilityCostProfile}:%{p.type}:%{p.initiatorProfile}",
-				"kc.FullSimulation", 200)
+				.addArrayParameter("measuringCost", 0.1);
+		Experiment marketbase = new ParameterSweep("market",
+				"basepower:%{p.facilityCostProfile}:fullmarket:mc",
+				"kc.MarketSimulation", n)
 				.addArrayParameter("facilityCostProfile", 1)
-				.addArrayParameter("type", "centralised", "market",
-						"collective")
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0.1);
+		Experiment initpower = new ParameterSweep("initpower",
+				"initpower:%{p.facilityCostProfile}:%{p.type}:mc",
+				"kc.FullSimulation", n)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addArrayParameter("type", "centralised", "collective")
 				.addArrayParameter("initiatorProfile",
 						Profile.PROFITABLE.name())
 				.addFixedParameter("nProsumers", 10)
@@ -444,37 +453,147 @@ public class KCCLI extends Presage2CLI {
 				.addFixedParameter("payOnProv", true)
 				.addFixedParameter("payOnApp", true)
 				.addFixedParameter("subscription", true)
-				.addFixedParameter("measuringCost", 0);
-		Experiment analystpower = new ParameterSweep(
-				"analystpower",
-				"analystpower:%{p.facilityCostProfile}:%{p.type}:%{p.analystProfile}",
-				"kc.FullSimulation", 200)
+				.addArrayParameter("measuringCost", 0.1);
+		Experiment marketinit = new ParameterSweep("market",
+				"initpower:%{p.facilityCostProfile}:fullmarket:mc",
+				"kc.MarketSimulation", n)
 				.addArrayParameter("facilityCostProfile", 1)
-				.addArrayParameter("type", "centralised", "market",
-						"collective")
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0.1)
+				.addArrayParameter("initiatorProfile",
+						Profile.PROFITABLE.name());
+		Experiment analystpower = new ParameterSweep("analystpower",
+				"analystpower:%{p.facilityCostProfile}:%{p.type}:mc",
+				"kc.FullSimulation", n)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addArrayParameter("type", "centralised", "collective")
 				.addArrayParameter("analystProfile", Profile.PROFITABLE.name())
 				.addFixedParameter("nProsumers", 10)
 				.addFixedParameter("initiatorCredit", 0)
 				.addFixedParameter("payOnProv", true)
 				.addFixedParameter("payOnApp", true)
 				.addFixedParameter("subscription", true)
-				.addFixedParameter("measuringCost", 0);
+				.addArrayParameter("measuringCost", 0.1);
+		Experiment marketanalyst = new ParameterSweep("market",
+				"analystpower:%{p.facilityCostProfile}:fullmarket:mc",
+				"kc.MarketSimulation", n)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0.1)
+				.addArrayParameter("analystProfile", Profile.PROFITABLE.name());
 		Experiment prosumerpower = new ParameterSweep(
 				"prosumerpower",
-				"prosumerpower:%{p.facilityCostProfile}:%{p.type}:%{p.nNcProsumers}",
-				"kc.FullSimulation", 200)
+				"prosumerpower:%{p.facilityCostProfile}:%{p.type}:%{p.nNcProsumers}:mc",
+				"kc.FullSimulation", n)
 				.addArrayParameter("facilityCostProfile", 1)
-				.addArrayParameter("type", "centralised", "market",
-						"collective")
-				.addArrayParameter("nNcProsumers", 2, 5, 10)
+				.addArrayParameter("type", "centralised", "collective")
+				.addArrayParameter("nNcProsumers", 2, 6, 10)
 				.addFixedParameter("nProsumers", 10)
 				.addFixedParameter("initiatorCredit", 0)
 				.addFixedParameter("payOnProv", true)
 				.addFixedParameter("payOnApp", true)
 				.addFixedParameter("subscription", true)
-				.addFixedParameter("measuringCost", 0);
-		//return new MultiExperiment("power", "", basepower, initpower,
-		//		analystpower, prosumerpower);
-		return prosumerpower;
+				.addArrayParameter("measuringCost", 0.1);
+		Experiment marketprosumer = new ParameterSweep(
+				"market",
+				"prosumerpower:%{p.facilityCostProfile}:fullmarket:%{p.nNcProsumers}:mc",
+				"kc.MarketSimulation", n)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0.1)
+				.addArrayParameter("nNcProsumers", 2, 6, 10);
+		Experiment allnc = new ParameterSweep("allnc",
+				"allnc:%{p.facilityCostProfile}:%{p.type}:mc",
+				"kc.FullSimulation", n)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addArrayParameter("type", "centralised", "collective")
+				.addArrayParameter("analystProfile", Profile.PROFITABLE.name())
+				.addArrayParameter("nNcProsumers", 2, 6, 10)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addFixedParameter("payOnProv", true)
+				.addFixedParameter("payOnApp", true)
+				.addFixedParameter("subscription", true)
+				.addArrayParameter("measuringCost", 0.1);
+		Experiment allncmarket = new ParameterSweep("allnc",
+				"allnc:%{p.facilityCostProfile}:fullmarket:mc",
+				"kc.MarketSimulation", n)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addArrayParameter("analystProfile", Profile.PROFITABLE.name())
+				.addArrayParameter("nNcProsumers", 2, 6, 10)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0.1);
+		return new MultiExperiment("power", "", basepower, initpower,
+				analystpower, prosumerpower, marketbase, marketinit,
+				marketanalyst, marketprosumer, allnc, allncmarket);
+	}
+
+	private Experiment staticInst() {
+		Experiment stat = new ParameterSweep(
+				"static",
+				"static:%{p.facilityCostProfile}:%{p.measuringCost}:%{p.dataCost}:%{p.knowledgeCost}",
+				"kc.StaticSimulation", 200)
+				.addArrayParameter("facilityCostProfile", 0)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0.1)
+				.addArrayParameter("dataCost", 0, 0.02, 0.04, 0.06, 0.08, 0.1,
+						0.12, 0.14, 0.16, 0.18, 0.2)
+				.addArrayParameter("knowledgeCost", 0, 0.1, 0.2, 0.3, 0.4, 0.5,
+						0.6, 0.7).addArrayParameter("nNcProsumers", 0);
+		Experiment stat2 = new ParameterSweep(
+				"staticnc",
+				"staticnc:%{p.facilityCostProfile}:%{p.measuringCost}:%{p.dataCost}:%{p.knowledgeCost}:%{p.nNcProsumers}",
+				"kc.StaticSimulation", 200)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0, 0.1)
+				.addArrayParameter("dataCost", 0, 0.02, 0.04, 0.06, 0.08, 0.1,
+						0.12, 0.14, 0.16, 0.18, 0.2)
+				.addArrayParameter("knowledgeCost", 0, 0.1, 0.2, 0.3, 0.4, 0.5,
+						0.6, 0.7).addArrayParameter("nNcProsumers", 6, 3);
+		return new MultiExperiment("static", "", stat);
+	}
+
+	private Experiment selforg() {
+		Experiment central = new ParameterSweep("central",
+				"central_%{p.measuringCost}", "kc.FullSimulation", 200)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0, 0.1)
+				.addFixedParameter("type", "centralised")
+				.addFixedParameter("payOnProv", true)
+				.addFixedParameter("payOnApp", true)
+				.addFixedParameter("subscription", true);
+		Experiment collective = new ParameterSweep("collective",
+				"collective%{p.measuringCost}", "kc.FullSimulation", 200)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0, 0.1)
+				.addFixedParameter("type", "collective");
+		Experiment olig = new ParameterSweep("olig", "olig%{p.measuringCost}",
+				"kc.FullSimulation", 200)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0, 0.1)
+				.addFixedParameter("type", "market")
+				.addFixedParameter("payOnProv", true)
+				.addFixedParameter("payOnApp", true);
+		Experiment market = new ParameterSweep("market",
+				"market%{p.measuringCost}", "kc.MarketSimulation", 200)
+				.addArrayParameter("facilityCostProfile", 1)
+				.addFixedParameter("nProsumers", 10)
+				.addFixedParameter("initiatorCredit", 0)
+				.addArrayParameter("measuringCost", 0, 0.1);
+		return new MultiExperiment("selforg", "", central, collective, olig,
+				market);
 	}
 }

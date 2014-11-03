@@ -3,11 +3,40 @@ import kc.choice.SubscriptionFee
 import kc.choice.PoolAppropriatePay
 
 import uk.ac.imperial.einst.access.RoleOf
+import uk.ac.imperial.einst.vote.OpenBallot
+import uk.ac.imperial.einst.vote.CloseBallot
+import uk.ac.imperial.einst.vote.Ballot
 import uk.ac.imperial.einst.vote.Issue
 import uk.ac.imperial.einst.vote.Declare
 import uk.ac.imperial.einst.vote.Vote
+import uk.ac.imperial.einst.ipower.Obl
+
+import java.lang.Math
+import java.lang.Integer
 
 global org.apache.log4j.Logger logger
+
+rule "Force periodic vote"
+	when
+		T(eval(t % 10 == 1))
+		$issue : Issue($cfv : cfvRoles, $i : inst)
+		RoleOf($a : actor, inst == $i, $cfv contains role)
+	then
+		OpenBallot act = new OpenBallot($a, $i, $issue);
+		insert( new Obl($a, act) );
+		logger.info("obl("+ act +")");
+end
+
+rule "Close opened ballot"
+	when
+		T($t : t)
+		OpenBallot(t < $t, $issue : issue, $i : inst, $a : actor)
+		$b : Ballot( issue == $issue, status == Ballot.Status.OPEN )
+	then
+		CloseBallot act = new CloseBallot($a, $i, $b);
+		insert( new Obl($a, act) );
+		logger.info("obl("+ act +")");
+end
 
 rule "Change pool fees"
 	when

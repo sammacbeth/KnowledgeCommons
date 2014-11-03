@@ -121,12 +121,13 @@ public class FullSimulation extends InjectedSimulation {
 		double facilityMarginalTrans = 0;
 		switch (facilityCostProfile) {
 		case 0:
-			facilitySunk = 50;
+			facilitySunk = 0;
 			facilityFixed = 1;
 			break;
 		case 1:
 			facilitySunk = 0;
-			facilityFixed = 2;
+			facilityFixed = 0;
+			facilityMarginalTrans = 0.1;
 			break;
 		case 2:
 			facilitySunk = 0;
@@ -215,7 +216,7 @@ public class FullSimulation extends InjectedSimulation {
 			}
 			predPool.end();
 			if (subscription) {
-				ib.addDynamicSubscription(consumers, 0, initiators, initiators,
+				ib.addDynamicSubscription(Roles.union(consumers, analysts), 0, initiators, initiators,
 						0.05);
 			}
 		}

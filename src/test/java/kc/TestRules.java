@@ -17,7 +17,7 @@ import uk.ac.imperial.einst.Action;
 import uk.ac.imperial.einst.Actor;
 import uk.ac.imperial.einst.EInstSession;
 import uk.ac.imperial.einst.Institution;
-import uk.ac.imperial.einst.StubActor;
+import uk.ac.imperial.einst.util.StubActor;
 import uk.ac.imperial.einst.access.RoleOf;
 import uk.ac.imperial.einst.ipower.Obl;
 import uk.ac.imperial.einst.micropay.Account;
@@ -73,6 +73,7 @@ public class TestRules {
 
 		session.LOG_WM = false;
 		DataInstitution i = new DataInstitution("i1", BORROW_LIM, "test");
+		i.maxPayRate = 10;
 		i.getAccount().setBalance(NEGATIVE_BALANCE);
 		session.insert(i);
 		session.insert(i.getAccount());

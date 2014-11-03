@@ -110,9 +110,14 @@ public class KCStorage extends SqlStorage {
 					logSnapshotInsert.executeBatch();
 					logSnapshotInsert.clearBatch();
 				}
+				String str = o.toString();
+				if(str.length() > 512) {
+					logger.warn("Long object: "+ str);
+					continue;
+				}
 				logSnapshotInsert.setLong(1, simId);
 				logSnapshotInsert.setInt(2, t);
-				logSnapshotInsert.setString(3, o.toString());
+				logSnapshotInsert.setString(3, str);
 				logSnapshotInsert.addBatch();
 			}
 			logSnapshotInsert.executeBatch();
