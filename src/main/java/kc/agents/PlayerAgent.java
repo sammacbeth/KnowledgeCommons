@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import kc.KnowledgeCommons;
 import kc.Measured;
@@ -14,11 +15,13 @@ import kc.State;
 import kc.Strategy;
 import kc.prediction.Predictor;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 
 import uk.ac.imperial.einst.Institution;
 import uk.ac.imperial.einst.UnavailableModuleException;
 import uk.ac.imperial.einst.ipower.IPower;
+import uk.ac.imperial.einst.micropay.Account;
 import uk.ac.imperial.einst.resource.Appropriate;
 import uk.ac.imperial.einst.resource.AppropriationsListener;
 import uk.ac.imperial.einst.resource.ArtifactTypeMatcher;
@@ -29,6 +32,8 @@ import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.util.random.Random;
 
 public class PlayerAgent extends AbstractAgent {
+
+	Predictor fallback;
 
 	public PlayerAgent(String name) {
 		super(Random.randomUUID(), name);
@@ -61,6 +66,7 @@ public class PlayerAgent extends AbstractAgent {
 		a.addBehaviour(a.new InstitutionalBehaviour());
 		a.addBehaviour(a.new RoleManagement());
 		a.addBehaviour(a.new VoteBehaviour(Profile.SUSTAINABLE));
+		a.fallback = predictor;
 		return a;
 	}
 
@@ -79,6 +85,7 @@ public class PlayerAgent extends AbstractAgent {
 		a.addBehaviour(a.new AppropriateMeasuredBehaviour());
 		a.addBehaviour(a.new InstitutionalBehaviour());
 		a.addBehaviour(a.new RoleManagement());
+		a.fallback = defaultPredictor;
 		return a;
 	}
 
@@ -195,22 +202,23 @@ public class PlayerAgent extends AbstractAgent {
 		public void doBehaviour() {
 			if (this.predictor == null || --strategyDuration <= 0) {
 				// periodically reassess strategy
-				if (this.predictor != null
-						&& predictor instanceof SlavePredictor) {
-					// decrement usage of this role
-					SlavePredictor sp = (SlavePredictor) this.predictor;
-					decrementRoleUsage(sp.source, "consumer");
-					decrementRoleUsage(sp.source, "gatherer");
-				}
+				Predictor previous = this.predictor;
 				this.predictor = getBestPredictor();
-				strategyDuration = strategyEvalPeriod;
+				strategyDuration = previous == predictor ? 0
+						: strategyEvalPeriod;
 				logger.info("Chosen Predictor is: " + this.predictor);
 
-				if (predictor instanceof SlavePredictor) {
-					// increment usage of this role
-					SlavePredictor sp = (SlavePredictor) this.predictor;
-					incrementRoleUsage(sp.source, "consumer");
-					incrementRoleUsage(sp.source, "gatherer");
+				if (previous != this.predictor) {
+					if (previous != null && previous instanceof SlavePredictor) {
+						// decrement usage of this role
+						SlavePredictor sp = (SlavePredictor) previous;
+						decrementRoleUsage(sp.source, "consumer");
+					}
+					if (predictor instanceof SlavePredictor) {
+						// increment usage of this role
+						SlavePredictor sp = (SlavePredictor) this.predictor;
+						incrementRoleUsage(sp.source, "consumer");
+					}
 				}
 			}
 
@@ -278,7 +286,25 @@ public class PlayerAgent extends AbstractAgent {
 				Measured m = incMeasured.poll();
 				// provision to each inst
 				for (Institution i : institutions) {
-					inst.act(new Provision(PlayerAgent.this, i, m));
+					AtomicInteger cons = roleUsage.get(Pair.of(i, "consumer"));
+					boolean doprov = (cons != null && cons.get() > 0)
+							|| ac.getRoles(PlayerAgent.this, i).contains(
+									"owner");
+					if (!doprov) {
+						doprov = game.getMeasuringCost() < kc.getProvisionPay(
+								i, new Measured())
+								+ kc.getAppropriationFee(i, new Measured(),
+										"analyst");
+					}
+					if (doprov) {
+						inst.act(new Provision(PlayerAgent.this, i, m));
+						AtomicInteger ruse = roleUsage.get(Pair.of(i,
+								"gatherer"));
+						if (ruse == null || ruse.get() < 4)
+							incrementRoleUsage(i, "gatherer");
+					} else {
+						decrementRoleUsage(i, "gatherer");
+					}
 				}
 			}
 		}
@@ -338,7 +364,8 @@ public class PlayerAgent extends AbstractAgent {
 			if (artifact instanceof Predictor
 					&& (!sources.containsKey(from) || !sources.get(from)
 							.contains(artifact))) {
-				Predictor p = new SlavePredictor((Predictor) artifact, from);
+				Predictor p = new SlavePredictor((Predictor) artifact, from,
+						fallback);
 				sendEvent("newPredictor", p);
 				if (!sources.containsKey(from)) {
 					sources.put(from, new HashSet<Predictor>());
@@ -356,12 +383,17 @@ public class PlayerAgent extends AbstractAgent {
 	class SlavePredictor implements Predictor {
 
 		final Predictor delegate;
+		final Predictor fallback;
 		final Institution source;
+		Account acc;
 
-		SlavePredictor(Predictor delegate, Institution source) {
+		SlavePredictor(Predictor delegate, Institution source,
+				Predictor fallback) {
 			super();
 			this.delegate = delegate;
 			this.source = source;
+			this.fallback = fallback;
+			this.acc = pay.getAccount(PlayerAgent.this);
 		}
 
 		@Override
@@ -370,6 +402,12 @@ public class PlayerAgent extends AbstractAgent {
 
 		@Override
 		public Strategy actionSelection(State state, List<Strategy> strategies) {
+			double fee = kc.getAppropriationFee(source, delegate, "consumer");
+			double available = acc.getBalance() - acc.getMinValue() - 5;
+			if (fee > available) {
+				// use fallback
+				return fallback.actionSelection(state, strategies);
+			}
 			inst.act(new Appropriate(PlayerAgent.this, this.source,
 					this.delegate));
 			return delegate.actionSelection(state, strategies);

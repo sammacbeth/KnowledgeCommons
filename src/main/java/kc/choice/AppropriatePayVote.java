@@ -126,7 +126,10 @@ public class AppropriatePayVote implements BallotHandler {
 						required = current;
 					for (Object o : options) {
 						double fee = Double.parseDouble(o.toString());
-						rating.put(o, Math.abs(required - fee));
+						double dist = fee - required;
+						if(dist < 0)
+							dist = 1 + Math.abs(dist); // below threshold, put to back to pref list
+						rating.put(o, dist);
 					}
 					choice = Preferences.generate(issue.getMethod(), rating,
 							true, 3);
@@ -138,18 +141,19 @@ public class AppropriatePayVote implements BallotHandler {
 					// targetProfit =
 					// (0.25*futureT-account.getBalance())/(futureT -
 					// b.getStarted());
+					double diff = 0;
 					required = (targetProfit - baseProfit) / nSold;
 					if (profit < -0.5
 							|| (profit < 0 && account.getBalance() < 0))
-						required = current + 0.1;
+						diff = + 0.1;
 					else if (profit > 0.8)
-						required = current - 0.05;
+						diff = - 0.05;
 					else if (profit > 1)
-						required = current - 0.1;
+						diff = - 0.1;
 					else if (profit <= 0.1 || account.getBalance() < 0)
-						required = current + 0.05;
-					else
-						required = current;
+						diff = + 0.05;
+
+					required = current + diff;
 					if (measuredPool && required < measuringCost)
 						minimum = measuringCost + 0.01;
 					/*
@@ -159,9 +163,20 @@ public class AppropriatePayVote implements BallotHandler {
 					 */
 					for (Object o : options) {
 						double fee = Double.parseDouble(o.toString());
+						double dist = fee - required;
 						if (fee < minimum)
 							rating.put(o, 5.0);
-						else
+						else if(diff > 0.01) {
+							if(dist < 0)
+								rating.put(o, 1 + Math.abs(dist)); // fee below required + we want higher
+							else
+								rating.put(o, dist);
+						} else if(diff < -0.01) {
+							if(dist > 0)
+								rating.put(o, 1 + dist);
+							else
+								rating.put(o, -1 * dist);
+						} else
 							rating.put(o, Math.abs(required - fee));
 					}
 					choice = Preferences.generate(issue.getMethod(), rating,

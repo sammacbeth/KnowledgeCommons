@@ -113,7 +113,7 @@ public class StaticSimulation extends InjectedSimulation {
 		switch (facilityCostProfile) {
 		case 0:
 			facilitySunk = 0;
-			facilityFixed = 1;
+			facilityFixed = 2;
 			break;
 		case 1:
 			facilitySunk = 0;

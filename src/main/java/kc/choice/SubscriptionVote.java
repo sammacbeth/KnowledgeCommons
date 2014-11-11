@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import kc.DataInstitution;
+import kc.Game;
 import kc.agents.BallotHandler;
 import kc.agents.Profile;
 import uk.ac.imperial.einst.Actor;
@@ -26,11 +27,12 @@ public class SubscriptionVote implements BallotHandler {
 	final Voting voting;
 	final AccessControl ac;
 	final MicroPayments pay;
+	final Game g;
 
 	final Profile type;
 
 	public SubscriptionVote(Actor a, Profile type, IPower pow, Voting voting,
-			AccessControl ac, MicroPayments pay) {
+			AccessControl ac, MicroPayments pay, Game g) {
 		super();
 		this.type = type;
 		this.self = a;
@@ -38,6 +40,7 @@ public class SubscriptionVote implements BallotHandler {
 		this.voting = voting;
 		this.ac = ac;
 		this.pay = pay;
+		this.g= g;
 	}
 
 	@Override
@@ -110,16 +113,24 @@ public class SubscriptionVote implements BallotHandler {
 		} else if (type == Profile.PROFITABLE) {
 			if (initiator) {
 				// aim to take 0.6 per agent per timestep.
-				double baseProfit = instProfit - issue.getFee() * numPayers;
-				double targetProfit = Math.max(baseProfit + numPayers * 0.5, 0);
-				Map<Object, Double> projectedProfit = new HashMap<Object, Double>();
+				double current = issue.getFee();
+				//double baseProfit = instProfit - issue.getFee() * numPayers;
+				double measuringCost = g.getMeasuringCost();
+				//double targetProfit = Math.max(baseProfit + numPayers * (0.5 - measuringCost), 0);
+				double target = 0.6 - measuringCost;
+				if(target > current)
+					target = current + 0.1;
+				else if(target < current)
+					target = current - 0.1;
+				//Map<Object, Double> projectedProfit = new HashMap<Object, Double>();
+				Map<Object, Double> rating = new HashMap<Object, Double>();
 				for (Object o : options) {
 					double fee = Double.parseDouble(o.toString());
-					double profit = baseProfit + fee * numPayers;
-					projectedProfit.put(o, Math.abs(targetProfit - profit));
+					//double profit = baseProfit + fee * numPayers;
+					rating.put(o, Math.abs(target - fee));
 				}
 				Preferences votePref = Preferences.generate(issue.getMethod(),
-						projectedProfit, true, 3);
+						rating, true, 3);
 				return new Vote(self, i, b, votePref);
 			} else if (payer) {
 				// prefer lower fees

@@ -108,7 +108,7 @@ public class MarketSimulation extends InjectedSimulation {
 		switch (facilityCostProfile) {
 		case 0:
 			facilitySunk = 0;
-			facilityFixed = 1;
+			facilityFixed = 2;
 			break;
 		case 1:
 			facilitySunk = 0;
@@ -162,6 +162,7 @@ public class MarketSimulation extends InjectedSimulation {
 
 			AbstractAgent ag = PlayerAgent.dumbPlayer(name, badPredictor(), p);
 			addAgent(s, ag, 10, i, "gatherer");
+			session.insert(new RoleOf(ag, i, "owner"));
 			session.insert(new RoleOf(ag, ki, "consumer"));
 
 			session.insert(new RoleOf(initiator, i, "initiator"));

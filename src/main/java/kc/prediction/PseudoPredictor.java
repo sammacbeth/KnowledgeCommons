@@ -30,10 +30,14 @@ public class PseudoPredictor implements Predictor {
 		this.name = name;
 	}
 
-	public PseudoPredictor(String name, double efficiency) {
+	public PseudoPredictor(String name, int initial, double efficiency) {
 		super();
 		this.name = name;
 		this.efficiency = efficiency;
+		setT(ShortKnowledgeGame.dataLimit);
+		for(AtomicInteger h : history) {
+			h.set(initial);
+		}
 	}
 
 	@Override

@@ -45,7 +45,6 @@ import uk.ac.imperial.einst.resource.ProvisionAppropriationSystem;
 import uk.ac.imperial.einst.resource.Prune;
 import uk.ac.imperial.einst.resource.Remove;
 import uk.ac.imperial.einst.resource.Request;
-import uk.ac.imperial.einst.vote.CloseBallot;
 import uk.ac.imperial.einst.vote.Issue;
 import uk.ac.imperial.einst.vote.OpenBallot;
 import uk.ac.imperial.einst.vote.Vote;
@@ -67,6 +66,10 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 
 	Map<Pair<Institution, String>, AtomicInteger> roleUsage = new HashMap<Pair<Institution, String>, AtomicInteger>();
 
+	AccessControl ac;
+	KnowledgeCommons kc;
+	MicroPayments pay;
+
 	public AbstractAgent(UUID id, String name) {
 		super(id, name);
 		logger = Logger.getLogger(name);
@@ -80,6 +83,13 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 			this.inst = getEnvironmentService(InstitutionService.class);
 		} catch (UnavailableServiceException e) {
 			throw new RuntimeException("Couldn't get env services", e);
+		}
+		try {
+			ac = inst.getSession().getModule(AccessControl.class);
+			kc = inst.getSession().getModule(KnowledgeCommons.class);
+			pay = inst.getSession().getModule(MicroPayments.class);
+		} catch (UnavailableModuleException e) {
+			throw new RuntimeException(e);
 		}
 		for (Behaviour b : behaviours) {
 			b.initialise();
@@ -446,7 +456,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 				throw new RuntimeException(e);
 			}
 			handlers.add(new SubscriptionVote(AbstractAgent.this, this.profile,
-					pow, v, ac, pay));
+					pow, v, ac, pay, game));
 			handlers.add(new AppropriatePayVote(AbstractAgent.this,
 					this.profile, pas, pay, ac, kc, game));
 		}
@@ -481,7 +491,7 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 					String role = e.getKey().getRight();
 					Set<String> roles = ac.getRoles(AbstractAgent.this, i);
 					// resign from instutions we're not using
-					if (e.getValue().get() == 0 && roles.contains(role)) {
+					if (e.getValue().get() <= 0 && roles.contains(role)) {
 						inst.act(new Resign(AbstractAgent.this, i, role));
 						sendEvent("leaveInstitution", i);
 					}
@@ -508,7 +518,9 @@ public class AbstractAgent extends AbstractParticipant implements Actor {
 		final Pair<Institution, String> key = Pair.of(i, role);
 		if (!roleUsage.containsKey(key))
 			roleUsage.put(key, new AtomicInteger(1));
-		roleUsage.get(key).decrementAndGet();
+		if (roleUsage.get(key).get() > 0)
+			roleUsage.get(key).decrementAndGet();
+
 	}
 
 }
