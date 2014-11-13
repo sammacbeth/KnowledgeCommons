@@ -117,7 +117,7 @@ public class SubscriptionVote implements BallotHandler {
 				//double baseProfit = instProfit - issue.getFee() * numPayers;
 				double measuringCost = g.getMeasuringCost();
 				//double targetProfit = Math.max(baseProfit + numPayers * (0.5 - measuringCost), 0);
-				double target = 0.6 - measuringCost;
+				double target = 0.7 - measuringCost;
 				if(target > current)
 					target = current + 0.1;
 				else if(target < current)

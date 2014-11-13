@@ -168,11 +168,11 @@ public class FullSimulation extends InjectedSimulation {
 					facilityMarginalTrans);
 			PoolBuilder measPool = ib.addMeasuredPool();
 			measPool.dynamicPayOnAppropriation(analysts, 0.0, initiators,
-					Roles.union(gatherers, analysts), 0.01, true);
+					Roles.union(gatherers, analysts), 0.05, true);
 			measPool.end();
 			PoolBuilder predPool = ib.addPredictorPool();
 			predPool.dynamicPayOnAppropriation(consumers, 0.0, initiators,
-					Roles.union(consumers, analysts), 0.01, true);
+					Roles.union(consumers, analysts), 0.05, true);
 			predPool.end();
 			ib.addDynamicSubscription(Roles.union(consumers, analysts), 0,
 					initiators, Roles.union(consumers, analysts), 0.05);
@@ -206,13 +206,13 @@ public class FullSimulation extends InjectedSimulation {
 			PoolBuilder measPool = ib.addMeasuredPool();
 			if (payOnProvision) {
 				measPool.dynamicPayOnAppropriation(analysts, 0.0, initiators,
-						initiators, 0.01, true);
+						initiators, 0.05, true);
 			}
 			measPool.end();
 			PoolBuilder predPool = ib.addPredictorPool();
 			if (payOnAppropriate) {
 				predPool.dynamicPayOnAppropriation(consumers, 0.0, initiators,
-						initiators, 0.01, true);
+						initiators, 0.05, true);
 			}
 			predPool.end();
 			if (subscription) {

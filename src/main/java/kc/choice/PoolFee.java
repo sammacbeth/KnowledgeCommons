@@ -15,8 +15,8 @@ public class PoolFee extends ChangeFeeIssue {
 	public PoolFee(MeteredPool pool, Set<String> roles, Set<String> cfvRoles,
 			Set<String> voteRoles, double incrementValue) {
 		super(pool.getInst(), "poolfee-" + roles.toString(), cfvRoles,
-				voteRoles, VoteMethod.PREFERENCE, Plurality.NAME, roles,
-				incrementValue);
+				voteRoles, VoteMethod.PREFERENCE, Plurality.NAME, roles, 0.0,
+				1.0, incrementValue);
 		this.pool = pool;
 	}
 

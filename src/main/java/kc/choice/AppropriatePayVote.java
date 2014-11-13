@@ -25,6 +25,10 @@ import uk.ac.imperial.einst.vote.Vote;
 
 public class AppropriatePayVote implements BallotHandler {
 
+	enum PrefPerms {
+		DOUBLE_DEC, DECREASE, NO_INC, NOCHANGE, NO_DEC, INCREASE, DOUBLE_INC
+	};
+
 	final Actor self;
 	final Profile type;
 	final ProvisionAppropriationSystem pas;
@@ -76,7 +80,7 @@ public class AppropriatePayVote implements BallotHandler {
 		final double instProfit = i.getProfit();
 
 		Object choice = null;
-		if (issue instanceof SetFeeIssue) {
+		if ((issue instanceof SetFeeIssue)) {
 			Map<Object, AtomicInteger> preferences = new HashMap<Object, AtomicInteger>();
 			final Object[] options = b.getOptions();
 			for (Object o : options) {
@@ -127,8 +131,9 @@ public class AppropriatePayVote implements BallotHandler {
 					for (Object o : options) {
 						double fee = Double.parseDouble(o.toString());
 						double dist = fee - required;
-						if(dist < 0)
-							dist = 1 + Math.abs(dist); // below threshold, put to back to pref list
+						if (dist < 0)
+							dist = 1 + Math.abs(dist); // below threshold, put
+														// to back to pref list
 						rating.put(o, dist);
 					}
 					choice = Preferences.generate(issue.getMethod(), rating,
@@ -143,19 +148,22 @@ public class AppropriatePayVote implements BallotHandler {
 					// b.getStarted());
 					double diff = 0;
 					required = (targetProfit - baseProfit) / nSold;
+					if (b.getStarted() < 10)
+						required = 0;
 					if (profit < -0.5
 							|| (profit < 0 && account.getBalance() < 0))
-						diff = + 0.1;
+						diff = +0.1;
 					else if (profit > 0.8)
-						diff = - 0.05;
+						diff = -0.05;
 					else if (profit > 1)
-						diff = - 0.1;
+						diff = -0.1;
 					else if (profit <= 0.1 || account.getBalance() < 0)
-						diff = + 0.05;
+						diff = +0.05;
 
 					required = current + diff;
-					if (measuredPool && required < measuringCost)
+					if (required < measuringCost)
 						minimum = measuringCost + 0.01;
+
 					/*
 					 * if(analyst) { double fee = kc.getAppropriationFee(i, new
 					 * Measured(), "analyst"); if(fee > required) { required =
@@ -166,14 +174,16 @@ public class AppropriatePayVote implements BallotHandler {
 						double dist = fee - required;
 						if (fee < minimum)
 							rating.put(o, 5.0);
-						else if(diff > 0.01) {
-							if(dist < 0)
-								rating.put(o, 1 + Math.abs(dist)); // fee below required + we want higher
+						else if (diff > 0.01) {
+							if (dist < 0)
+								// rating.put(o, 2 * Math.abs(dist)); // fee
+								// below required + we want higher
+								rating.put(o, 1 + Math.abs(dist));
 							else
 								rating.put(o, dist);
-						} else if(diff < -0.01) {
-							if(dist > 0)
-								rating.put(o, 1 + dist);
+						} else if (diff < -0.01) {
+							if (dist > 0)
+								rating.put(o, dist * 2);
 							else
 								rating.put(o, -1 * dist);
 						} else
@@ -187,8 +197,9 @@ public class AppropriatePayVote implements BallotHandler {
 				switch (type) {
 				case GREEDY:
 				case PROFITABLE:
-					for (int j = 0; j < 2; j++) {
-						preferences.get(options[j]).addAndGet(3 - j);
+					for (Object o : options) {
+						preferences.get(o).addAndGet(
+								(int) (Double.parseDouble(o.toString()) * 20));
 					}
 					choice = Preferences.generate(issue.getMethod(),
 							preferences, true, 3);
@@ -256,96 +267,133 @@ public class AppropriatePayVote implements BallotHandler {
 						3);
 			}
 		} else {
+			PrefPerms preferred = PrefPerms.NOCHANGE;
+			final double measuringCost = g.getMeasuringCost();
 			if (beneficiary) {
 				switch (type) {
 				case GREEDY:
-					choice = ChangeFeeIssue.INCREASE;
+					preferred = PrefPerms.INCREASE;
 					break;
 				case PROFITABLE:
-					if (profit > 1.0)
-						choice = ChangeFeeIssue.DECREASE;
-					else if (profit < 0.75)
-						choice = ChangeFeeIssue.INCREASE;
+					if (profit < 0.1)
+						preferred = PrefPerms.DOUBLE_INC;
+					else if (profit < 1)
+						preferred = PrefPerms.INCREASE;
 					else
-						choice = ChangeFeeIssue.NOCHANGE;
+						preferred = PrefPerms.NO_DEC;
 					break;
 				case SUSTAINABLE:
-					if (!issue.paidByAppropriators) {
-						// ensure inst can bare cost
-						if (instBalance < 0)
-							choice = ChangeFeeIssue.DECREASE;
-						else if (instBalance > 0 && profit < 0.1)
-							choice = ChangeFeeIssue.INCREASE;
-						else
-							choice = ChangeFeeIssue.NOCHANGE;
-					} else {
-						// others are paying, set a fair rate
-						if (profit < 0.25)
-							choice = ChangeFeeIssue.INCREASE;
-						else if (profit > 0.5)
-							choice = ChangeFeeIssue.DECREASE;
-						else
-							choice = ChangeFeeIssue.NOCHANGE;
-					}
+					if (profit < -0.5
+							|| (profit < 0 && account.getBalance() < 0))
+						preferred = PrefPerms.DOUBLE_INC;
+					else if (profit > 0.8)
+						preferred = PrefPerms.DECREASE;
+					else if (profit > 1)
+						preferred = PrefPerms.DOUBLE_DEC;
+					else if (profit <= 0.1 || account.getBalance() < 0)
+						preferred = PrefPerms.INCREASE;
+					else
+						preferred = PrefPerms.NOCHANGE;
+
+					if (current < measuringCost
+							&& (preferred != PrefPerms.INCREASE && preferred != PrefPerms.DOUBLE_INC))
+						preferred = PrefPerms.INCREASE;
 					break;
 				}
 			} else if (user) {
 				switch (type) {
 				case GREEDY:
-					choice = ChangeFeeIssue.DECREASE;
+					preferred = PrefPerms.DOUBLE_DEC;
 					break;
 				case PROFITABLE:
-					if (current > 0.2)
-						choice = ChangeFeeIssue.DECREASE;
+					if (profit < 0.1)
+						preferred = PrefPerms.DOUBLE_DEC;
+					else if (profit < 1)
+						preferred = PrefPerms.DECREASE;
+					else
+						preferred = PrefPerms.NO_INC;
 					break;
 				case SUSTAINABLE:
-					if (!issue.paidByAppropriators) {
-						// ensure inst can bare cost
-						if (instProfit < 0 || instBalance < 0)
-							choice = ChangeFeeIssue.DECREASE;
-						else if (current < 0.1)
-							choice = ChangeFeeIssue.INCREASE;
-						else
-							choice = ChangeFeeIssue.NOCHANGE;
-					} else {
-						// others are paying, set a fair rate
-						if (profit < 0)
-							choice = ChangeFeeIssue.INCREASE;
-						else if (profit > 1.0)
-							choice = ChangeFeeIssue.DECREASE;
-						else
-							choice = ChangeFeeIssue.NOCHANGE;
-					}
+					if (profit < -1)
+						preferred = PrefPerms.DOUBLE_DEC;
+					else if (profit <= 0.1)
+						preferred = PrefPerms.DECREASE;
+					else if (profit > 1)
+						preferred = PrefPerms.INCREASE;
+					else if (profit > 2)
+						preferred = PrefPerms.DOUBLE_INC;
+					else
+						preferred = PrefPerms.NOCHANGE;
 					break;
 				}
 			} else if (initiator) {
-				// initiator who is not invested either way in the pool
-				switch (type) {
-				case GREEDY:
-				case PROFITABLE:
-					choice = ChangeFeeIssue.DECREASE;
-					break;
-				case SUSTAINABLE:
-					if (!issue.paidByAppropriators) {
-						// ensure inst can bare cost
-						if (instBalance < 0)
-							choice = ChangeFeeIssue.DECREASE;
-						else if (instBalance > 0 && current < 0.1)
-							choice = ChangeFeeIssue.INCREASE;
-						else
-							choice = ChangeFeeIssue.NOCHANGE;
-					} else {
-						// others are paying, set a fair rate
-						if (profit < 0)
-							choice = ChangeFeeIssue.INCREASE;
-						else if (profit > 1.0)
-							choice = ChangeFeeIssue.DECREASE;
-						else
-							choice = ChangeFeeIssue.NOCHANGE;
-					}
-					break;
+				double val = 0;
+				if (measuredPool) {
+					val = measuringCost + 0.01;
+				} else {
+					val = 0.075 + (9 * measuringCost / 10);
 				}
+				double diff = current - val;
+				if (diff < -0.1)
+					preferred = PrefPerms.DOUBLE_INC;
+				else if (diff < -0.05)
+					preferred = PrefPerms.INCREASE;
+				else if (diff > 0.1)
+					preferred = PrefPerms.DOUBLE_DEC;
+				else if (diff > 0.05)
+					preferred = PrefPerms.DECREASE;
+				else
+					preferred = PrefPerms.NOCHANGE;
 			}
+			Preferences preflist = new Preferences();
+			switch (preferred) {
+			case DOUBLE_DEC:
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_DECREASE);
+				preflist.addPreference(ChangeFeeIssue.DECREASE);
+				preflist.addPreference(ChangeFeeIssue.NOCHANGE);
+				preflist.addPreference(ChangeFeeIssue.INCREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_INCREASE);
+				break;
+			case DECREASE:
+				preflist.addPreference(ChangeFeeIssue.DECREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_DECREASE);
+				preflist.addPreference(ChangeFeeIssue.NOCHANGE);
+				preflist.addPreference(ChangeFeeIssue.INCREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_INCREASE);
+				break;
+			case NO_INC:
+				preflist.addPreference(ChangeFeeIssue.NOCHANGE);
+				preflist.addPreference(ChangeFeeIssue.DECREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_DECREASE);
+				preflist.addPreference(ChangeFeeIssue.INCREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_INCREASE);
+				break;
+			case NOCHANGE:
+				preflist.addPreference(ChangeFeeIssue.NOCHANGE);
+				break;
+			case NO_DEC:
+				preflist.addPreference(ChangeFeeIssue.NOCHANGE);
+				preflist.addPreference(ChangeFeeIssue.INCREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_INCREASE);
+				preflist.addPreference(ChangeFeeIssue.DECREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_DECREASE);
+				break;
+			case INCREASE:
+				preflist.addPreference(ChangeFeeIssue.INCREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_INCREASE);
+				preflist.addPreference(ChangeFeeIssue.NOCHANGE);
+				preflist.addPreference(ChangeFeeIssue.DECREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_DECREASE);
+				break;
+			case DOUBLE_INC:
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_INCREASE);
+				preflist.addPreference(ChangeFeeIssue.INCREASE);
+				preflist.addPreference(ChangeFeeIssue.NOCHANGE);
+				preflist.addPreference(ChangeFeeIssue.DECREASE);
+				preflist.addPreference(ChangeFeeIssue.DOUBLE_DECREASE);
+				break;
+			}
+			choice = preflist;
 		}
 		return new Vote(self, i, b, choice);
 	}
